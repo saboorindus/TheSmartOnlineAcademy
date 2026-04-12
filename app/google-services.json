@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "880537878197",
+    "project_id": "the-smart-online-academy",
+    "storage_bucket": "the-smart-online-academy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:880537878197:android:cbfe12e07623375a1288fc",
+        "android_client_info": {
+          "package_name": "com.echologics.thesmartonlineacademy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD21mhV23lLmagaGU8nhH0hY0LyoIX3FWU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
