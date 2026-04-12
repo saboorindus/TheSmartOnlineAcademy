@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -11,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,6 +39,7 @@ import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherPro
 import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherProfileViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsScreen
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsViewModel
+import com.echologics.thesmartonlineacademy.utils.AppViewModelFactory
 
 sealed class Screen(val route: String) {
     object RoleSelect : Screen("role_select")
@@ -69,7 +72,9 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.RoleSelect.route
 ) {
-    val authRepository = AuthRepository()
+
+    val authRepository = remember { AuthRepository() }
+    val factory = remember { AppViewModelFactory(authRepository) }
 
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -83,8 +88,9 @@ fun AppNavigation(
 
         composable(Screen.Login.route) { backStack ->
             val role = backStack.arguments?.getString("role") ?: "student"
+            val viewModel: LoginViewModel = viewModel(factory = factory)
             LoginScreen(
-                viewModel = LoginViewModel(authRepository),
+                viewModel = viewModel,
                 role = role,
                 onLoginSuccess = { user ->
                     val dest = when {
@@ -101,8 +107,10 @@ fun AppNavigation(
 
         composable(Screen.Signup.route) { backStack ->
             val role = backStack.arguments?.getString("role") ?: "student"
+            val vm: SignupViewModel = viewModel(factory = factory)
+
             SignupScreen(
-                viewModel = SignupViewModel(authRepository),
+                viewModel = vm,
                 role = role,
                 onSignupSuccess = {
                     val dest = if (role == "teacher") Screen.TeacherOnboarding.route else Screen.StudentOnboarding.route
@@ -114,28 +122,35 @@ fun AppNavigation(
 
         // ── Onboarding ────────────────────────────────────────────────────────
         composable(Screen.TeacherOnboarding.route) {
+            val vm: TeacherOnboardingViewModel = viewModel(factory = factory)
+
             TeacherOnboardingScreen(
-                viewModel = TeacherOnboardingViewModel(authRepository),
+                viewModel = vm,
                 onComplete = { navController.navigate(Screen.TeacherHome.route) { popUpTo(0) } }
             )
         }
 
         composable(Screen.StudentOnboarding.route) {
+            val vm: StudentOnboardingViewModel = viewModel(factory = factory)
+
             StudentOnboardingScreen(
-                viewModel = StudentOnboardingViewModel(authRepository),
+                viewModel = vm,
                 onComplete = { navController.navigate(Screen.StudentHome.route) { popUpTo(0) } }
             )
         }
 
         // ── Teacher home ──────────────────────────────────────────────────────
         composable(Screen.TeacherHome.route) {
-            TeacherBookingsScreen(viewModel = TeacherBookingsViewModel())
+            val vm: TeacherBookingsViewModel = viewModel(factory = factory)
+
+            TeacherBookingsScreen(viewModel = vm)
         }
 
         // ── Student home = Discovery ──────────────────────────────────────────
         composable(Screen.StudentHome.route) {
+            val vm: DiscoveryViewModel = viewModel(factory = factory)
             DiscoveryScreen(
-                viewModel = DiscoveryViewModel(),
+                viewModel = vm,
                 onTeacherClick = { teacherId ->
                     navController.navigate(Screen.TeacherProfile.createRoute(teacherId))
                 }
@@ -145,8 +160,9 @@ fun AppNavigation(
         // ── Teacher profile view (student sees this) ──────────────────────────
         composable(Screen.TeacherProfile.route) { backStack ->
             val teacherId = backStack.arguments?.getString("teacherId") ?: return@composable
+            val vm: TeacherProfileViewModel = viewModel(factory = factory)
             TeacherProfileScreen(
-                viewModel = TeacherProfileViewModel(),
+                viewModel = vm,
                 teacherId = teacherId,
                 onBookClick = { teacher ->
                     NavArgs.selectedTeacher = teacher
@@ -162,8 +178,12 @@ fun AppNavigation(
                 navController.popBackStack()
                 return@composable
             }
+
+            val vm: BookingViewModel = viewModel(factory = factory)
+
+
             BookingScreen(
-                viewModel = BookingViewModel(),
+                viewModel = vm,
                 teacher = teacher,
                 onBookingCreated = { booking ->
                     NavArgs.createdBooking = booking
@@ -179,8 +199,10 @@ fun AppNavigation(
                 navController.popBackStack()
                 return@composable
             }
+            val vm: PaymentViewModel = viewModel(factory = factory)
+
             PaymentScreen(
-                viewModel = PaymentViewModel(),
+                viewModel = vm,
                 booking = booking,
                 onPaymentSubmitted = {
                     navController.navigate(Screen.PaymentSuccess.route) {
