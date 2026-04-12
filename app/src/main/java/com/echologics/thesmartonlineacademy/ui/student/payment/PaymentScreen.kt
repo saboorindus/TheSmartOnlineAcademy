@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +79,11 @@ fun PaymentScreen(
                     SummaryRow("Session", booking.sessionLength)
                     SummaryRow("Day", "${booking.slotDay} ${booking.scheduledTime}")
                     if (booking.scheduledDate.isNotBlank()) SummaryRow("Date", booking.scheduledDate)
-                    Divider(color = Purple.copy(alpha = 0.2f), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = 0.5.dp,
+                        color = Purple.copy(alpha = 0.2f)
+                    )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Total due", fontWeight = FontWeight.SemiBold, color = Purple)
                         Text(booking.totalAmount, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = Purple)

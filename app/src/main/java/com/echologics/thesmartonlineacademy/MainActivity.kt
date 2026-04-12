@@ -1,13 +1,16 @@
 package com.echologics.thesmartonlineacademy
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.echologics.thesmartonlineacademy.navigation.AppNavigation
 import com.echologics.thesmartonlineacademy.navigation.Screen
+import com.echologics.thesmartonlineacademy.notifications.NotificationHelper
 import com.echologics.thesmartonlineacademy.ui.common.theme.TheSmartOnlineAcademyTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -15,6 +18,7 @@ import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -31,6 +35,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        NotificationHelper.createChannels(this)
     }
 
     private suspend fun resolveStartDestination(): String {

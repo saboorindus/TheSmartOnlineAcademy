@@ -98,7 +98,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.compose.material.icons.extended)
-
+    implementation(libs.full.sdk)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

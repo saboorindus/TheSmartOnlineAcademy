@@ -1,0 +1,401 @@
+package com.echologics.thesmartonlineacademy.ui.session
+
+import android.Manifest
+import android.view.SurfaceView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.echologics.thesmartonlineacademy.data.model.Booking
+import com.echologics.thesmartonlineacademy.data.model.ChatMessage
+import com.echologics.thesmartonlineacademy.data.model.SessionRole
+import com.echologics.thesmartonlineacademy.ui.session.whiteboard.WhiteboardCanvas
+import com.echologics.thesmartonlineacademy.ui.session.whiteboard.WhiteboardViewModel
+import kotlinx.coroutines.launch
+
+@Composable
+fun SessionScreen(
+    sessionViewModel: SessionViewModel,
+    whiteboardViewModel: WhiteboardViewModel,
+    booking: Booking,
+    role: SessionRole,
+    onSessionEnded: () -> Unit
+) {
+    val context = LocalContext.current
+    val uiState by sessionViewModel.uiState.collectAsState()
+    var permissionsGranted by remember { mutableStateOf(false) }
+    var showEndConfirm by remember { mutableStateOf(false) }
+
+    // Request camera + mic permissions
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        permissionsGranted = perms[Manifest.permission.CAMERA] == true &&
+                perms[Manifest.permission.RECORD_AUDIO] == true
+    }
+
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(
+            arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+        )
+    }
+
+    LaunchedEffect(permissionsGranted) {
+        if (permissionsGranted) {
+            sessionViewModel.initSession(context, booking, role)
+        }
+    }
+
+    LaunchedEffect(uiState.isEnded) {
+        if (uiState.isEnded) onSessionEnded()
+    }
+
+    // End session confirmation dialog
+    if (showEndConfirm) {
+        AlertDialog(
+            onDismissRequest = { showEndConfirm = false },
+            title = { Text("End session?") },
+            text = { Text("This will end the session for both participants and mark it as completed.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showEndConfirm = false
+                        sessionViewModel.endSession()
+                    }
+                ) {
+                    Text("End session", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (!permissionsGranted) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Camera and microphone access needed", fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = {
+                    permissionLauncher.launch(
+                        arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+                    )
+                }) { Text("Grant permissions") }
+            }
+        }
+        return
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A1A))) {
+
+        // ── Video feeds ───────────────────────────────────────────────────────
+
+        // Remote video (full screen background)
+        if (uiState.isRemoteVideoVisible && uiState.remoteUid != null) {
+            AndroidView(
+                factory = { ctx ->
+                    SurfaceView(ctx).also { view ->
+                        sessionViewModel.setupRemoteVideo(view, uiState.remoteUid!!)
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Waiting placeholder
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text(uiState.connectionState, color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                }
+            }
+        }
+
+        // Local video (picture-in-picture, top-right)
+        if (!uiState.isCameraOff) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(width = 110.dp, height = 150.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF2A2A2A))
+            ) {
+                AndroidView(
+                    factory = { ctx ->
+                        SurfaceView(ctx).also { view ->
+                            sessionViewModel.setupLocalVideo(view)
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+
+        // ── Top bar ───────────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = if (role == SessionRole.TEACHER) booking.studentName else booking.teacherName,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = "${booking.subject} · ${booking.sessionLength}",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 12.sp
+                )
+            }
+            // Live indicator
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = if (uiState.isSessionActive) Color(0xFFE24B4A) else Color.Gray
+            ) {
+                Text(
+                    text = if (uiState.isSessionActive) "LIVE" else uiState.connectionState,
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
+        }
+
+        // ── Whiteboard overlay ────────────────────────────────────────────────
+        if (uiState.isWhiteboardVisible) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.7f)
+                    .padding(horizontal = 8.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White)
+            ) {
+                WhiteboardCanvas(viewModel = whiteboardViewModel)
+            }
+        }
+
+        // ── Chat panel ────────────────────────────────────────────────────────
+        if (uiState.isChatVisible) {
+            ChatPanel(
+                messages = uiState.chatMessages,
+                input = uiState.chatInput,
+                onInputChange = sessionViewModel::onChatInputChange,
+                onSend = sessionViewModel::sendChatMessage,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.5f)
+                    .padding(bottom = 100.dp, start = 8.dp, end = 8.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(Color(0xF2FFFFFF))
+            )
+        }
+
+        // ── Bottom control bar ────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(Color(0xCC000000))
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ControlButton(
+                icon = if (uiState.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                label = if (uiState.isMuted) "Unmute" else "Mute",
+                active = !uiState.isMuted,
+                onClick = sessionViewModel::toggleMute
+            )
+            ControlButton(
+                icon = if (uiState.isCameraOff) Icons.Default.VideocamOff else Icons.Default.Videocam,
+                label = if (uiState.isCameraOff) "Cam off" else "Cam on",
+                active = !uiState.isCameraOff,
+                onClick = sessionViewModel::toggleCamera
+            )
+            ControlButton(
+                icon = Icons.Default.Draw,
+                label = "Board",
+                active = uiState.isWhiteboardVisible,
+                onClick = sessionViewModel::toggleWhiteboard
+            )
+            ControlButton(
+                icon = Icons.AutoMirrored.Filled.Chat,
+                label = "Chat",
+                active = uiState.isChatVisible,
+                tint = if (uiState.chatMessages.isNotEmpty()) Color(0xFF1D9E75) else null,
+                onClick = sessionViewModel::toggleChat
+            )
+            ControlButton(
+                icon = Icons.Default.Cameraswitch,
+                label = "Flip",
+                active = false,
+                onClick = sessionViewModel::switchCamera
+            )
+            // End session button (red)
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE24B4A))
+                    .clickableSafe { showEndConfirm = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.CallEnd, contentDescription = "End session", tint = Color.White, modifier = Modifier.size(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ControlButton(
+    icon: ImageVector,
+    label: String,
+    active: Boolean,
+    tint: Color? = null,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickableSafe { onClick() }
+            .padding(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(
+                    when {
+                        !active -> Color(0xFF3A3A3A)
+                        else -> Color(0xFF2A2A2A)
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = tint ?: if (active) Color.White else Color(0xFFAAAAAA),
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(Modifier.height(3.dp))
+        Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+    }
+}
+
+@Composable
+private fun ChatPanel(
+    messages: List<ChatMessage>,
+    input: String,
+    onInputChange: (String) -> Unit,
+    onSend: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            scope.launch { listState.animateScrollToItem(messages.size - 1) }
+        }
+    }
+
+    Column(modifier = modifier.padding(12.dp)) {
+        Text("Session chat", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(messages) { msg ->
+                ChatBubble(msg)
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = input,
+                onValueChange = onInputChange,
+                placeholder = { Text("Type a message...", fontSize = 13.sp) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(20.dp)
+            )
+            IconButton(
+                onClick = onSend,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFF534AB7))
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatBubble(message: ChatMessage) {
+    Column {
+        Text(
+            message.senderName,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF534AB7)
+        )
+        Text(
+            message.text,
+            fontSize = 13.sp,
+            lineHeight = 18.sp
+        )
+    }
+}
+
+// Safe clickable that doesn't show ripple on the control bar
+private fun Modifier.clickableSafe(onClick: () -> Unit) = this.then(
+    Modifier.clickable(
+        interactionSource = null,
+        indication = null,
+        onClick = onClick
+    )
+)

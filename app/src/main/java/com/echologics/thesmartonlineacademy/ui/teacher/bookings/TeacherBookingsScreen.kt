@@ -23,7 +23,8 @@ import com.echologics.thesmartonlineacademy.ui.common.theme.TealLight
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeacherBookingsScreen(
-    viewModel: TeacherBookingsViewModel
+    viewModel: TeacherBookingsViewModel,
+    onJoinSession: (Booking) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filtered = viewModel.filteredBookings()
@@ -91,7 +92,8 @@ fun TeacherBookingsScreen(
                         booking = booking,
                         isConfirming = uiState.confirmingBookingId == booking.id,
                         onConfirmPayment = { viewModel.confirmPayment(booking.id) },
-                        onCancel = { viewModel.cancelBooking(booking.id) }
+                        onCancel = { viewModel.cancelBooking(booking.id) },
+                        onJoinSession = { onJoinSession(booking) }
                     )
                 }
             }
@@ -104,7 +106,8 @@ private fun BookingCard(
     booking: Booking,
     isConfirming: Boolean,
     onConfirmPayment: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onJoinSession: () -> Unit
 ) {
     val (bgColor, borderColor, badgeColor, badgeText) = when (booking.status) {
         BookingStatus.PAYMENT_SUBMITTED -> listOf(AmberLight, Amber, Amber, "Payment submitted")
@@ -220,11 +223,11 @@ private fun BookingCard(
                 }
             }
 
-            // For confirmed sessions - show join button placeholder
+            // For confirmed sessions - show join button
             if (booking.status == BookingStatus.CONFIRMED) {
                 Spacer(Modifier.height(10.dp))
                 Button(
-                    onClick = { /* navigate to session */ },
+                    onClick = onJoinSession,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Teal)
