@@ -7,8 +7,11 @@ import com.echologics.thesmartonlineacademy.data.model.BookingStatus
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class TeacherBookingsUiState(
@@ -38,16 +41,26 @@ class TeacherBookingsViewModel(
         _uiState.value = _uiState.value.copy(selectedTab = tab)
     }
 
-    fun filteredBookings(): List<Booking> {
-        val all = _uiState.value.bookings
-        return when (_uiState.value.selectedTab) {
-            BookingTab.PENDING -> all.filter {
-                it.status == BookingStatus.PENDING_PAYMENT || it.status == BookingStatus.PAYMENT_SUBMITTED
+    val filteredBookings: StateFlow<List<Booking>> =
+        uiState.map { state ->
+            when (state.selectedTab) {
+                BookingTab.PENDING -> state.bookings.filter {
+                    it.status == BookingStatus.PENDING_PAYMENT ||
+                            it.status == BookingStatus.PAYMENT_SUBMITTED
+                }
+
+                BookingTab.CONFIRMED -> state.bookings.filter {
+                    it.status == BookingStatus.CONFIRMED
+                }
+
+                BookingTab.ALL -> state.bookings
             }
-            BookingTab.CONFIRMED -> all.filter { it.status == BookingStatus.CONFIRMED }
-            BookingTab.ALL -> all
-        }
-    }
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+
 
     fun confirmPayment(bookingId: String) {
         _uiState.value = _uiState.value.copy(confirmingBookingId = bookingId)
