@@ -26,6 +26,7 @@ import com.echologics.thesmartonlineacademy.ui.teacher.dashboard.ApprovalStatusB
 @Composable
 fun TeacherBookingsScreen(
     viewModel: TeacherBookingsViewModel,
+    modifier: Modifier = Modifier,
     onJoinSession: (Booking) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -33,79 +34,75 @@ fun TeacherBookingsScreen(
     val bannerVm = remember { ApprovalBannerViewModel() }
 
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("My bookings") })
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+    ) {
+        TopAppBar(title = { Text("My bookings") })
+
+        // Tab row
+        TabRow(
+            selectedTabIndex = BookingTab.entries.indexOf(uiState.selectedTab),
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = Purple
         ) {
-            // Tab row
-            TabRow(
-                selectedTabIndex = BookingTab.entries.indexOf(uiState.selectedTab),
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = Purple
+            BookingTab.entries.forEach { tab ->
+                Tab(
+                    selected = uiState.selectedTab == tab,
+                    onClick = { viewModel.onTabSelected(tab) },
+                    text = { Text(tab.label) }
+                )
+            }
+        }
+
+        // Approval banner
+        ApprovalStatusBanner(viewModel = bannerVm)
+
+        if (uiState.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Purple)
+            }
+            return@Column
+        }
+
+        if (filtered.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                BookingTab.entries.forEach { tab ->
-                    Tab(
-                        selected = uiState.selectedTab == tab,
-                        onClick = { viewModel.onTabSelected(tab) },
-                        text = { Text(tab.label) }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No bookings yet", fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        when (uiState.selectedTab) {
+                            BookingTab.PENDING -> "New booking requests will appear here"
+                            BookingTab.CONFIRMED -> "Confirmed sessions will appear here"
+                            BookingTab.ALL -> "You have no bookings yet"
+                        },
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
                 }
             }
+            return@Column
+        }
 
-            // Approval status banner (hidden when approved)
-            ApprovalStatusBanner(viewModel = bannerVm)
-
-            if (uiState.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Purple)
-                }
-                return@Scaffold
-            }
-
-            if (filtered.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No bookings yet", fontWeight = FontWeight.Medium)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            when (uiState.selectedTab) {
-                                BookingTab.PENDING -> "New booking requests will appear here"
-                                BookingTab.CONFIRMED -> "Confirmed sessions will appear here"
-                                BookingTab.ALL -> "You have no bookings yet"
-                            },
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                        )
-                    }
-                }
-                return@Scaffold
-            }
-
-            LazyColumn(
-                contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(filtered) { booking ->
-                    BookingCard(
-                        booking = booking,
-                        isConfirming = uiState.confirmingBookingId == booking.id,
-                        onConfirmPayment = { viewModel.confirmPayment(booking.id) },
-                        onCancel = { viewModel.cancelBooking(booking.id) },
-                        onJoinSession = { onJoinSession(booking) }
-                    )
-                }
+        LazyColumn(
+            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(filtered) { booking ->
+                BookingCard(
+                    booking = booking,
+                    isConfirming = uiState.confirmingBookingId == booking.id,
+                    onConfirmPayment = { viewModel.confirmPayment(booking.id) },
+                    onCancel = { viewModel.cancelBooking(booking.id) },
+                    onJoinSession = { onJoinSession(booking) }
+                )
             }
         }
     }
+
 }
 
 @Composable

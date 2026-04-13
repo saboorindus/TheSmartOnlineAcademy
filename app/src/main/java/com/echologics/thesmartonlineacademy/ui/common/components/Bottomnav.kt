@@ -1,14 +1,20 @@
 package com.echologics.thesmartonlineacademy.ui.common.components
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
@@ -28,7 +34,8 @@ fun TeacherBottomNav(
 ) {
     val items = listOf(
         BottomNavItem("Bookings", Icons.Default.Home, "teacher_home"),
-        BottomNavItem("Messages", Icons.AutoMirrored.Filled.Chat, "teacher_messages")
+        BottomNavItem("Messages", Icons.AutoMirrored.Filled.Chat, "teacher_messages"),
+        BottomNavItem("Profile", Icons.Default.Person, "teacher_profile_edit")
     )
     AppBottomNavScaffold(navController, currentRoute, items, content)
 }
@@ -41,6 +48,7 @@ fun StudentBottomNav(
 ) {
     val items = listOf(
         BottomNavItem("Discover", Icons.Default.Search, "student_home"),
+        BottomNavItem("Sessions", Icons.Default.CalendarMonth, "student_sessions"),
         BottomNavItem("Messages", Icons.AutoMirrored.Filled.Chat, "student_messages")
     )
     AppBottomNavScaffold(navController, currentRoute, items, content)

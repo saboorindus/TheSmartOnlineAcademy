@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 // Replace with your Agora App ID from console.agora.io
-private const val AGORA_APP_ID = "0bcd1a1d17b44aeeba473215676773fa"
+private const val AGORA_APP_ID = "2df6491956aa4d07bebbc9e430cddcfc"
 
 data class SessionUiState(
     val booking: Booking? = null,
