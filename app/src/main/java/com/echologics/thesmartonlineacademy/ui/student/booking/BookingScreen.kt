@@ -20,7 +20,7 @@ import com.echologics.thesmartonlineacademy.ui.common.components.SelectableChip
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun BookingScreen(
     viewModel: BookingViewModel,

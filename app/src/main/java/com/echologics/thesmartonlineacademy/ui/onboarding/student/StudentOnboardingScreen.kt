@@ -66,6 +66,7 @@ fun StudentOnboardingScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun StudentStep1Goals(uiState: StudentOnboardingUiState, viewModel: StudentOnboardingViewModel) {
     val subjects = listOf("Mathematics", "Physics", "Chemistry", "Biology", "English", "Urdu", "History", "Computer Science", "Economics")
     val levels = listOf("Primary", "O-Level", "A-Level", "University", "Professional")
@@ -109,6 +110,8 @@ private fun StudentStep1Goals(uiState: StudentOnboardingUiState, viewModel: Stud
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
+
 private fun StudentStep2Preferences(uiState: StudentOnboardingUiState, viewModel: StudentOnboardingViewModel) {
     val languages = listOf("English", "Urdu", "Punjabi", "Arabic", "French")
     val availPrefs = listOf("Weekday mornings", "Weekday evenings", "Weekend mornings", "Weekend afternoons", "Weekend evenings")

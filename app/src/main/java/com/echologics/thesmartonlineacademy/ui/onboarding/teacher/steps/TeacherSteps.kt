@@ -19,6 +19,8 @@ import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.TeacherOnboard
 // ─── Step 1: Personal Info ───────────────────────────────────────────────────
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
+
 fun Step1PersonalInfo(uiState: TeacherOnboardingUiState, viewModel: TeacherOnboardingViewModel) {
     val languages = listOf("English", "Urdu", "Punjabi", "Arabic", "French", "German")
 
@@ -64,6 +66,8 @@ fun Step1PersonalInfo(uiState: TeacherOnboardingUiState, viewModel: TeacherOnboa
 // ─── Step 2: Teaching Details ─────────────────────────────────────────────────
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
+
 fun Step2TeachingDetails(uiState: TeacherOnboardingUiState, viewModel: TeacherOnboardingViewModel) {
     val subjects = listOf("Mathematics", "Physics", "Chemistry", "Biology", "English", "Urdu", "History", "Computer Science", "Economics", "Accounting")
     val levels = listOf("Primary", "O-Level", "A-Level", "University", "Adult / Professional")
@@ -156,6 +160,8 @@ fun Step3Credentials(uiState: TeacherOnboardingUiState, viewModel: TeacherOnboar
 // ─── Step 4: Rate & Session Lengths ──────────────────────────────────────────
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
+
 fun Step4RateAndSessions(uiState: TeacherOnboardingUiState, viewModel: TeacherOnboardingViewModel) {
     val lengths = listOf("30 min", "60 min", "90 min")
 

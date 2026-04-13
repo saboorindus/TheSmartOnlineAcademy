@@ -88,6 +88,8 @@ fun TeacherProfileScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
+
 private fun TeacherProfileContent(
     teacher: TeacherProfile,
     reviews: List<Review>,
