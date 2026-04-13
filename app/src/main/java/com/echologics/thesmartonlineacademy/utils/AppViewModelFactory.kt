@@ -2,8 +2,10 @@ package com.echologics.thesmartonlineacademy.utils
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.echologics.thesmartonlineacademy.data.repository.AdminRepository
 import com.echologics.thesmartonlineacademy.data.repository.AuthRepository
 import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
+import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.SignupViewModel
 import com.echologics.thesmartonlineacademy.ui.messaging.ChatViewModel
@@ -20,7 +22,8 @@ import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsV
 
 class AppViewModelFactory(
     private val authRepository: AuthRepository,
-    private val messagingRepository: MessagingRepository
+    private val messagingRepository: MessagingRepository,
+    private val adminRepository: AdminRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -71,6 +74,9 @@ class AppViewModelFactory(
 
             modelClass.isAssignableFrom(ChatViewModel::class.java) ->
                 ChatViewModel(messagingRepository) as T
+
+            modelClass.isAssignableFrom(AdminDashboardViewModel::class.java) ->
+                AdminDashboardViewModel(adminRepository) as T
 
 
             else -> throw IllegalArgumentException(

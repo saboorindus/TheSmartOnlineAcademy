@@ -21,6 +21,7 @@ import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.Conversation
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
+import com.echologics.thesmartonlineacademy.data.repository.AdminRepository
 import com.echologics.thesmartonlineacademy.data.repository.AuthRepository
 import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardScreen
@@ -103,7 +104,8 @@ fun AppNavigation(
 
     val authRepository = remember { AuthRepository() }
     val messageRepository = remember { MessagingRepository() }
-    val factory = remember { AppViewModelFactory(authRepository,messageRepository) }
+    val adminRepository = remember { AdminRepository() }
+    val factory = remember { AppViewModelFactory(authRepository,messageRepository,adminRepository) }
 
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -123,6 +125,7 @@ fun AppNavigation(
                 role = role,
                 onLoginSuccess = { user ->
                     val dest = when {
+                        user.role.name.equals("admin", true) -> Screen.AdminPanel.route
                         !user.onboardingComplete && user.role.name.equals("teacher", true) -> Screen.TeacherOnboarding.route
                         !user.onboardingComplete -> Screen.StudentOnboarding.route
                         user.role.name.equals("teacher", true) -> Screen.TeacherHome.route
@@ -324,7 +327,8 @@ fun AppNavigation(
 
         // ── Admin panel ───────────────────────────────────────────────────────
         composable(Screen.AdminPanel.route) {
-            AdminDashboardScreen(viewModel = AdminDashboardViewModel())
+            val vm: AdminDashboardViewModel = viewModel(factory = factory)
+            AdminDashboardScreen(viewModel = vm)
         }
     }
 }
