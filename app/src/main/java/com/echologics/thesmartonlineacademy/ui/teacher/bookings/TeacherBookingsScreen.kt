@@ -19,6 +19,8 @@ import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
 import com.echologics.thesmartonlineacademy.ui.common.theme.Teal
 import com.echologics.thesmartonlineacademy.ui.common.theme.TealLight
+import com.echologics.thesmartonlineacademy.ui.teacher.dashboard.ApprovalBannerViewModel
+import com.echologics.thesmartonlineacademy.ui.teacher.dashboard.ApprovalStatusBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +30,7 @@ fun TeacherBookingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filtered by viewModel.filteredBookings.collectAsState()
+    val bannerVm = remember { ApprovalBannerViewModel() }
 
 
     Scaffold(
@@ -54,6 +57,9 @@ fun TeacherBookingsScreen(
                     )
                 }
             }
+
+            // Approval status banner (hidden when approved)
+            ApprovalStatusBanner(viewModel = bannerVm)
 
             if (uiState.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

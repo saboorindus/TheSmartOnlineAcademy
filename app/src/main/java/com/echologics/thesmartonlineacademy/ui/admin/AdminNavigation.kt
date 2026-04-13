@@ -1,18 +1,15 @@
-package com.echologics.thesmartonlineacademy.navigation
+package com.echologics.thesmartonlineacademy.ui.admin
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,18 +19,11 @@ import com.echologics.thesmartonlineacademy.data.model.Conversation
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.repository.AuthRepository
-import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
-import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardScreen
-import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginScreen
 import com.echologics.thesmartonlineacademy.ui.auth.LoginViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.RoleSelectScreen
 import com.echologics.thesmartonlineacademy.ui.auth.SignupScreen
 import com.echologics.thesmartonlineacademy.ui.auth.SignupViewModel
-import com.echologics.thesmartonlineacademy.ui.messaging.ChatScreen
-import com.echologics.thesmartonlineacademy.ui.messaging.ChatViewModel
-import com.echologics.thesmartonlineacademy.ui.messaging.ConversationListScreen
-import com.echologics.thesmartonlineacademy.ui.messaging.ConversationListViewModel
 import com.echologics.thesmartonlineacademy.ui.onboarding.student.StudentOnboardingScreen
 import com.echologics.thesmartonlineacademy.ui.onboarding.student.StudentOnboardingViewModel
 import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.TeacherOnboardingScreen
@@ -51,8 +41,6 @@ import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherPro
 import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherProfileViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsScreen
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsViewModel
-import com.echologics.thesmartonlineacademy.utils.AppViewModelFactory
-import com.google.firebase.auth.FirebaseAuth
 
 sealed class Screen(val route: String) {
     object RoleSelect : Screen("role_select")
@@ -100,10 +88,7 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.RoleSelect.route
 ) {
-
-    val authRepository = remember { AuthRepository() }
-    val messageRepository = remember { MessagingRepository() }
-    val factory = remember { AppViewModelFactory(authRepository,messageRepository) }
+    val authRepository = AuthRepository()
 
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -117,9 +102,8 @@ fun AppNavigation(
 
         composable(Screen.Login.route) { backStack ->
             val role = backStack.arguments?.getString("role") ?: "student"
-            val viewModel: LoginViewModel = viewModel(factory = factory)
             LoginScreen(
-                viewModel = viewModel,
+                viewModel = LoginViewModel(authRepository),
                 role = role,
                 onLoginSuccess = { user ->
                     val dest = when {
@@ -136,10 +120,8 @@ fun AppNavigation(
 
         composable(Screen.Signup.route) { backStack ->
             val role = backStack.arguments?.getString("role") ?: "student"
-            val vm: SignupViewModel = viewModel(factory = factory)
-
             SignupScreen(
-                viewModel = vm,
+                viewModel = SignupViewModel(authRepository),
                 role = role,
                 onSignupSuccess = {
                     val dest = if (role == "teacher") Screen.TeacherOnboarding.route else Screen.StudentOnboarding.route
@@ -151,28 +133,23 @@ fun AppNavigation(
 
         // ── Onboarding ────────────────────────────────────────────────────────
         composable(Screen.TeacherOnboarding.route) {
-            val vm: TeacherOnboardingViewModel = viewModel(factory = factory)
-
             TeacherOnboardingScreen(
-                viewModel = vm,
+                viewModel = TeacherOnboardingViewModel(authRepository),
                 onComplete = { navController.navigate(Screen.TeacherHome.route) { popUpTo(0) } }
             )
         }
 
         composable(Screen.StudentOnboarding.route) {
-            val vm: StudentOnboardingViewModel = viewModel(factory = factory)
-
             StudentOnboardingScreen(
-                viewModel = vm,
+                viewModel = StudentOnboardingViewModel(authRepository),
                 onComplete = { navController.navigate(Screen.StudentHome.route) { popUpTo(0) } }
             )
         }
 
         // ── Teacher home ──────────────────────────────────────────────────────
         composable(Screen.TeacherHome.route) {
-            val vm: TeacherBookingsViewModel = viewModel(factory = factory)
             TeacherBookingsScreen(
-                viewModel = vm,
+                viewModel = TeacherBookingsViewModel(),
                 onJoinSession = { booking ->
                     NavArgs.sessionBooking = booking
                     navController.navigate(Screen.Session.createRoute("teacher"))
@@ -182,11 +159,31 @@ fun AppNavigation(
 
         // ── Student home = Discovery ──────────────────────────────────────────
         composable(Screen.StudentHome.route) {
-            val vm: DiscoveryViewModel = viewModel(factory = factory)
             DiscoveryScreen(
-                viewModel = vm,
+                viewModel = DiscoveryViewModel(),
                 onTeacherClick = { teacherId ->
                     navController.navigate(Screen.TeacherProfile.createRoute(teacherId))
+                }
+            )
+        }
+
+        // ── Session room (teacher + student) ──────────────────────────────────
+        composable(Screen.Session.route) { backStack ->
+            val roleStr = backStack.arguments?.getString("role") ?: "student"
+            val role = if (roleStr == "teacher") SessionRole.TEACHER else SessionRole.STUDENT
+            val booking = NavArgs.sessionBooking ?: run {
+                navController.popBackStack(); return@composable
+            }
+            SessionScreen(
+                sessionViewModel = SessionViewModel(),
+                whiteboardViewModel = WhiteboardViewModel(),
+                booking = booking,
+                role = role,
+                onSessionEnded = {
+                    navController.navigate(
+                        if (role == SessionRole.TEACHER) Screen.TeacherHome.route
+                        else Screen.StudentHome.route
+                    ) { popUpTo(0) }
                 }
             )
         }
@@ -194,9 +191,8 @@ fun AppNavigation(
         // ── Teacher profile view (student sees this) ──────────────────────────
         composable(Screen.TeacherProfile.route) { backStack ->
             val teacherId = backStack.arguments?.getString("teacherId") ?: return@composable
-            val vm: TeacherProfileViewModel = viewModel(factory = factory)
             TeacherProfileScreen(
-                viewModel = vm,
+                viewModel = TeacherProfileViewModel(),
                 teacherId = teacherId,
                 onBookClick = { teacher ->
                     NavArgs.selectedTeacher = teacher
@@ -212,12 +208,8 @@ fun AppNavigation(
                 navController.popBackStack()
                 return@composable
             }
-
-            val vm: BookingViewModel = viewModel(factory = factory)
-
-
             BookingScreen(
-                viewModel = vm,
+                viewModel = BookingViewModel(),
                 teacher = teacher,
                 onBookingCreated = { booking ->
                     NavArgs.createdBooking = booking
@@ -233,10 +225,8 @@ fun AppNavigation(
                 navController.popBackStack()
                 return@composable
             }
-            val vm: PaymentViewModel = viewModel(factory = factory)
-
             PaymentScreen(
-                viewModel = vm,
+                viewModel = PaymentViewModel(),
                 booking = booking,
                 onPaymentSubmitted = {
                     navController.navigate(Screen.PaymentSuccess.route) {
@@ -253,72 +243,6 @@ fun AppNavigation(
                 onGoHome = {
                     navController.navigate(Screen.StudentHome.route) { popUpTo(0) }
                 }
-            )
-        }
-
-
-        // ── Session room (teacher + student) ──────────────────────────────────
-        composable(Screen.Session.route) { backStack ->
-            val roleStr = backStack.arguments?.getString("role") ?: "student"
-            val role = if (roleStr == "teacher") SessionRole.TEACHER else SessionRole.STUDENT
-            val booking = NavArgs.sessionBooking ?: run {
-                navController.popBackStack(); return@composable
-            }
-            val sessionViewModel: SessionViewModel = viewModel(factory = factory)
-            val whiteboardViewModel: WhiteboardViewModel = viewModel(factory = factory)
-            SessionScreen(
-                sessionViewModel = sessionViewModel,
-                whiteboardViewModel = whiteboardViewModel,
-                booking = booking,
-                role = role,
-                onSessionEnded = {
-                    navController.navigate(
-                        if (role == SessionRole.TEACHER) Screen.TeacherHome.route
-                        else Screen.StudentHome.route
-                    ) { popUpTo(0) }
-                }
-            )
-        }
-
-        // ── Teacher messages ──────────────────────────────────────────────────
-        composable(Screen.TeacherMessages.route) {
-            val vm: ConversationListViewModel = viewModel(factory = factory)
-            ConversationListScreen(
-                viewModel = vm,
-                onConversationClick = { convo, otherName ->
-                    NavArgs.activeConversation = convo
-                    NavArgs.chatOtherName = otherName
-                    NavArgs.chatOtherId = convo.participantIds.first { it != FirebaseAuth.getInstance().currentUser?.uid }
-                    navController.navigate(Screen.Chat.route)
-                }
-            )
-        }
-
-// ── Student messages ──────────────────────────────────────────────────
-        composable(Screen.StudentMessages.route) {
-            val vm: ConversationListViewModel = viewModel(factory = factory)
-
-            ConversationListScreen(
-                viewModel = vm,
-                onConversationClick = { convo, otherName ->
-                    NavArgs.activeConversation = convo
-                    NavArgs.chatOtherName = otherName
-                    NavArgs.chatOtherId = convo.participantIds.first { it != FirebaseAuth.getInstance().currentUser?.uid }
-                    navController.navigate(Screen.Chat.route)
-                }
-            )
-        }
-
-// ── Chat thread ───────────────────────────────────────────────────────
-        composable(Screen.Chat.route) {
-            val convo = NavArgs.activeConversation ?: run { navController.popBackStack(); return@composable }
-            val vm: ChatViewModel = viewModel(factory = factory)
-            ChatScreen(
-                viewModel = vm,
-                conversation = convo,
-                otherName = NavArgs.chatOtherName,
-                otherId = NavArgs.chatOtherId,
-                onBack = { navController.popBackStack() }
             )
         }
 
@@ -376,7 +300,7 @@ private fun PaymentSuccessScreen(onGoHome: () -> Unit) {
             onClick = onGoHome,
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF534AB7))
+            colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF534AB7))
         ) {
             Text("Back to home")
         }

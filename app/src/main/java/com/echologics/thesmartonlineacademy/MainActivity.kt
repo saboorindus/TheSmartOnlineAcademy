@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
             val user = doc.toObject(User::class.java)
             when {
                 user == null -> Screen.RoleSelect.route
+                user.role.name.lowercase() == "admin" -> Screen.AdminPanel.route
                 !user.onboardingComplete && user.role.name.lowercase() == "teacher" -> Screen.TeacherOnboarding.route
                 !user.onboardingComplete && user.role.name.lowercase() == "student" -> Screen.StudentOnboarding.route
                 user.role.name.lowercase() == "teacher" -> Screen.TeacherHome.route

@@ -1,6 +1,6 @@
 package com.echologics.thesmartonlineacademy.data.model
 
-enum class UserRole { TEACHER, STUDENT }
+enum class UserRole { TEACHER, STUDENT, ADMIN }
 
 data class User(
     val uid: String = "",
