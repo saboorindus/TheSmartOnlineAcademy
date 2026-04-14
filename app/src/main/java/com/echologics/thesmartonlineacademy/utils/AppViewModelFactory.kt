@@ -83,7 +83,7 @@ class AppViewModelFactory(
                 ChatViewModel(messagingRepository) as T
 
             modelClass.isAssignableFrom(AdminDashboardViewModel::class.java) ->
-                AdminDashboardViewModel(adminRepository) as T
+                AdminDashboardViewModel(adminRepository,bookingRepository) as T
 
             modelClass.isAssignableFrom(BookingHistoryViewModel::class.java) ->
                 BookingHistoryViewModel(bookingRepository,reviewRepository) as T

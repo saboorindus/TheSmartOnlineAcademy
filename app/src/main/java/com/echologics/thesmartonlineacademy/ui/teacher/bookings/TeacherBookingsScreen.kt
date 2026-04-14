@@ -95,7 +95,7 @@ fun TeacherBookingsScreen(
                 BookingCard(
                     booking = booking,
                     isConfirming = uiState.confirmingBookingId == booking.id,
-                    onConfirmPayment = { viewModel.confirmPayment(booking.id) },
+//                    onConfirmPayment = { viewModel.confirmPayment(booking.id) },
                     onCancel = { viewModel.cancelBooking(booking.id) },
                     onJoinSession = { onJoinSession(booking) }
                 )
@@ -109,7 +109,7 @@ fun TeacherBookingsScreen(
 private fun BookingCard(
     booking: Booking,
     isConfirming: Boolean,
-    onConfirmPayment: () -> Unit,
+//    onConfirmPayment: () -> Unit,
     onCancel: () -> Unit,
     onJoinSession: () -> Unit
 ) {
@@ -191,23 +191,30 @@ private fun BookingCard(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     // Confirm payment button
-                    Button(
-                        onClick = onConfirmPayment,
-                        enabled = !isConfirming,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Teal)
-                    ) {
-                        if (isConfirming) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = androidx.compose.ui.graphics.Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Payment received", fontSize = 13.sp)
-                        }
-                    }
+//                    Button(
+//                        onClick = onConfirmPayment,
+//                        enabled = !isConfirming,
+//                        modifier = Modifier.weight(1f),
+//                        shape = RoundedCornerShape(8.dp),
+//                        colors = ButtonDefaults.buttonColors(containerColor = Teal)
+//                    ) {
+//                        if (isConfirming) {
+//                            CircularProgressIndicator(
+//                                modifier = Modifier.size(16.dp),
+//                                color = androidx.compose.ui.graphics.Color.White,
+//                                strokeWidth = 2.dp
+//                            )
+//                        } else {
+//                            Text("Payment received", fontSize = 13.sp)
+//                        }
+//                    }
+
+                    Text(
+                        "Waiting for admin to verify payment",
+                        fontSize = 12.sp,
+                        color = Amber
+                    )
+
 
                     // Cancel button
                     OutlinedButton(

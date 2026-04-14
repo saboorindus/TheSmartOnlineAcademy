@@ -8,6 +8,7 @@ import com.echologics.thesmartonlineacademy.data.model.BookingStatus
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.echologics.thesmartonlineacademy.data.repository.AdminRepository
+import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +31,8 @@ data class AdminUiState(
     val showRejectDialog: Boolean = false,
     val rejectTargetUid: String = "",
     val rejectReason: String = "",
-    val bookingFilter: BookingStatus? = null
+    val bookingFilter: BookingStatus? = null,
+    val confirmingBookingId: String? = null
 )
 
 enum class AdminTab(val label: String) {
@@ -42,7 +44,8 @@ enum class AdminTab(val label: String) {
 }
 
 class AdminDashboardViewModel(
-    private val repo: AdminRepository = AdminRepository()
+    private val repo: AdminRepository = AdminRepository(),
+    private val bookingRepository: BookingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AdminUiState())
@@ -96,6 +99,25 @@ class AdminDashboardViewModel(
                 onFailure = { e ->
                     _uiState.value = _uiState.value.copy(
                         actionLoading = null,
+                        error = e.message
+                    )
+                }
+            )
+        }
+    }
+
+    fun confirmPayment(bookingId: String) {
+        _uiState.value = _uiState.value.copy(confirmingBookingId = bookingId)
+        viewModelScope.launch {
+            val result = bookingRepository.confirmPayment(bookingId)
+            result.fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(confirmingBookingId = null)
+                    loadAll()
+                },
+                onFailure = { e ->
+                    _uiState.value = _uiState.value.copy(
+                        confirmingBookingId = null,
                         error = e.message
                     )
                 }

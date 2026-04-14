@@ -407,16 +407,19 @@ private fun BookingsTab(uiState: AdminUiState, viewModel: AdminDashboardViewMode
             items(filtered, key = { it.id }) { booking ->
                 AdminBookingCard(
                     booking = booking,
-                    isProcessing = uiState.actionLoading == booking.id,
-                    onCancel = { viewModel.cancelBooking(booking.id) }
+                    isProcessing = uiState.actionLoading == booking.id
+                            || uiState.confirmingBookingId == booking.id,
+                    onCancel = { viewModel.cancelBooking(booking.id) },
+                    onConfirmPayment = { viewModel.confirmPayment(booking.id) }
                 )
+
             }
         }
     }
 }
 
 @Composable
-private fun AdminBookingCard(booking: Booking, isProcessing: Boolean, onCancel: () -> Unit) {
+private fun AdminBookingCard(booking: Booking, isProcessing: Boolean, onCancel: () -> Unit, onConfirmPayment: () -> Unit) {
     val statusColor = when (booking.status) {
         BookingStatus.CONFIRMED -> Teal
         BookingStatus.PAYMENT_SUBMITTED -> Amber
@@ -471,6 +474,26 @@ private fun AdminBookingCard(booking: Booking, isProcessing: Boolean, onCancel: 
                     }
                 }
             }
+
+            if (booking.status == BookingStatus.PAYMENT_SUBMITTED) {
+                Spacer(Modifier.height(8.dp))
+
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Purple,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Button(
+                        onClick = onConfirmPayment,
+                        colors = ButtonDefaults.buttonColors(containerColor = Teal)
+                    ) {
+                        Text("Confirm payment", fontSize = 12.sp)
+                    }
+                }
+            }
+
         }
     }
 }
