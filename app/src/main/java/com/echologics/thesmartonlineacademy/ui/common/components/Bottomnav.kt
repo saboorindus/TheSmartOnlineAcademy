@@ -1,5 +1,7 @@
 package com.echologics.thesmartonlineacademy.ui.common.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -30,7 +32,7 @@ data class BottomNavItem(
 fun TeacherBottomNav(
     navController: NavHostController,
     currentRoute: String,
-    content: @Composable (Modifier) -> Unit
+    content: @Composable () -> Unit
 ) {
     val items = listOf(
         BottomNavItem("Bookings", Icons.Default.Home, "teacher_home"),
@@ -44,11 +46,11 @@ fun TeacherBottomNav(
 fun StudentBottomNav(
     navController: NavHostController,
     currentRoute: String,
-    content: @Composable (Modifier) -> Unit
+    content: @Composable () -> Unit
 ) {
     val items = listOf(
         BottomNavItem("Discover", Icons.Default.Search, "student_home"),
-        BottomNavItem("Sessions", Icons.Default.CalendarMonth, "student_sessions"),
+        BottomNavItem("Sessions", Icons.Default.CalendarMonth, "student_bookings"), // matches Screen.BookingHistory.route
         BottomNavItem("Messages", Icons.AutoMirrored.Filled.Chat, "student_messages")
     )
     AppBottomNavScaffold(navController, currentRoute, items, content)
@@ -59,7 +61,7 @@ private fun AppBottomNavScaffold(
     navController: NavHostController,
     currentRoute: String,
     items: List<BottomNavItem>,
-    content: @Composable (Modifier) -> Unit
+    content: @Composable () -> Unit
 ) {
     Scaffold(
         bottomBar = {
@@ -77,9 +79,7 @@ private fun AppBottomNavScaffold(
                                 }
                             }
                         },
-                        icon = {
-                            Icon(item.icon, contentDescription = item.label)
-                        },
+                        icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Purple,
@@ -90,7 +90,13 @@ private fun AppBottomNavScaffold(
                 }
             }
         }
-    ) { padding ->
-        content(Modifier.padding(padding))
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            content()
+        }
     }
 }

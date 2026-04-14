@@ -24,7 +24,9 @@ import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.repository.AdminRepository
 import com.echologics.thesmartonlineacademy.data.repository.AuthRepository
+import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
+import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardScreen
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginScreen
@@ -42,11 +44,15 @@ import com.echologics.thesmartonlineacademy.ui.onboarding.student.StudentOnboard
 import com.echologics.thesmartonlineacademy.ui.onboarding.student.StudentOnboardingViewModel
 import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.TeacherOnboardingScreen
 import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.TeacherOnboardingViewModel
+import com.echologics.thesmartonlineacademy.ui.review.ReviewScreen
+import com.echologics.thesmartonlineacademy.ui.review.ReviewViewModel
 import com.echologics.thesmartonlineacademy.ui.session.SessionScreen
 import com.echologics.thesmartonlineacademy.ui.session.SessionViewModel
 import com.echologics.thesmartonlineacademy.ui.session.whiteboard.WhiteboardViewModel
 import com.echologics.thesmartonlineacademy.ui.student.booking.BookingScreen
 import com.echologics.thesmartonlineacademy.ui.student.booking.BookingViewModel
+import com.echologics.thesmartonlineacademy.ui.student.bookinghistory.BookingHistoryScreen
+import com.echologics.thesmartonlineacademy.ui.student.bookinghistory.BookingHistoryViewModel
 import com.echologics.thesmartonlineacademy.ui.student.discovery.DiscoveryScreen
 import com.echologics.thesmartonlineacademy.ui.student.discovery.DiscoveryViewModel
 import com.echologics.thesmartonlineacademy.ui.student.payment.PaymentScreen
@@ -55,6 +61,8 @@ import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherPro
 import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherProfileViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsScreen
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsViewModel
+import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditScreen
+import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditViewModel
 import com.echologics.thesmartonlineacademy.utils.AppViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 
@@ -88,7 +96,6 @@ sealed class Screen(val route: String) {
     }
 }
 
-// Lightweight in-memory store for passing complex objects between screens
 object NavArgs {
     var selectedTeacher: TeacherProfile? = null
     var createdBooking: Booking? = null
@@ -104,20 +111,23 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.RoleSelect.route
 ) {
-
     val authRepository = remember { AuthRepository() }
     val messageRepository = remember { MessagingRepository() }
     val adminRepository = remember { AdminRepository() }
-    val factory = remember { AppViewModelFactory(authRepository,messageRepository,adminRepository) }
+    val bookingRepository = remember { BookingRepository() }
+    val reviewRepository = remember { ReviewRepository() }
+    val factory = remember { AppViewModelFactory(authRepository, messageRepository, adminRepository,
+        bookingRepository,reviewRepository) }
 
+    // Track current route for bottom nav highlighting
     val currentRoute = navController.currentBackStackEntryFlow
         .collectAsState(initial = navController.currentBackStackEntry)
         .value?.destination?.route
 
-
     NavHost(navController = navController, startDestination = startDestination) {
 
         // ── Auth ──────────────────────────────────────────────────────────────
+
         composable(Screen.RoleSelect.route) {
             RoleSelectScreen(
                 onTeacherSelected = { navController.navigate(Screen.Login.createRoute("teacher")) },
@@ -127,9 +137,9 @@ fun AppNavigation(
 
         composable(Screen.Login.route) { backStack ->
             val role = backStack.arguments?.getString("role") ?: "student"
-            val viewModel: LoginViewModel = viewModel(factory = factory)
+            val vm: LoginViewModel = viewModel(factory = factory)
             LoginScreen(
-                viewModel = viewModel,
+                viewModel = vm,
                 role = role,
                 onLoginSuccess = { user ->
                     val dest = when {
@@ -148,7 +158,6 @@ fun AppNavigation(
         composable(Screen.Signup.route) { backStack ->
             val role = backStack.arguments?.getString("role") ?: "student"
             val vm: SignupViewModel = viewModel(factory = factory)
-
             SignupScreen(
                 viewModel = vm,
                 role = role,
@@ -161,9 +170,9 @@ fun AppNavigation(
         }
 
         // ── Onboarding ────────────────────────────────────────────────────────
+
         composable(Screen.TeacherOnboarding.route) {
             val vm: TeacherOnboardingViewModel = viewModel(factory = factory)
-
             TeacherOnboardingScreen(
                 viewModel = vm,
                 onComplete = { navController.navigate(Screen.TeacherHome.route) { popUpTo(0) } }
@@ -172,43 +181,70 @@ fun AppNavigation(
 
         composable(Screen.StudentOnboarding.route) {
             val vm: StudentOnboardingViewModel = viewModel(factory = factory)
-
             StudentOnboardingScreen(
                 viewModel = vm,
                 onComplete = { navController.navigate(Screen.StudentHome.route) { popUpTo(0) } }
             )
         }
 
-        // ── Teacher home ──────────────────────────────────────────────────────
+        // ── Teacher tabs (wrapped in TeacherBottomNav) ────────────────────────
+
         composable(Screen.TeacherHome.route) {
             TeacherBottomNav(
                 navController = navController,
                 currentRoute = currentRoute ?: Screen.TeacherHome.route
-            ) { padding ->
-
+            ) {
                 val vm: TeacherBookingsViewModel = viewModel(factory = factory)
-
                 TeacherBookingsScreen(
                     viewModel = vm,
                     onJoinSession = { booking ->
                         NavArgs.sessionBooking = booking
                         navController.navigate(Screen.Session.createRoute("teacher"))
-                    },
-                    modifier = padding
+                    }
                 )
             }
         }
 
+        composable(Screen.TeacherMessages.route) {
+            TeacherBottomNav(
+                navController = navController,
+                currentRoute = currentRoute ?: Screen.TeacherMessages.route
+            ) {
+                val vm: ConversationListViewModel = viewModel(factory = factory)
+                ConversationListScreen(
+                    viewModel = vm,
+                    onConversationClick = { convo, otherName ->
+                        NavArgs.activeConversation = convo
+                        NavArgs.chatOtherName = otherName
+                        NavArgs.chatOtherId = convo.participantIds
+                            .first { it != FirebaseAuth.getInstance().currentUser?.uid }
+                        navController.navigate(Screen.Chat.route)
+                    }
+                )
+            }
+        }
 
-        // ── Student home = Discovery ──────────────────────────────────────────
+        composable(Screen.TeacherProfileEdit.route) {
+            TeacherBottomNav(
+                navController = navController,
+                currentRoute = currentRoute ?: Screen.TeacherProfileEdit.route
+            ) {
+                val vm: TeacherProfileEditViewModel = viewModel(factory = factory)
+                TeacherProfileEditScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        }
+
+        // ── Student tabs (wrapped in StudentBottomNav) ────────────────────────
+
         composable(Screen.StudentHome.route) {
             StudentBottomNav(
                 navController = navController,
                 currentRoute = currentRoute ?: Screen.StudentHome.route
-            ) { padding ->
-
+            ) {
                 val vm: DiscoveryViewModel = viewModel(factory = factory)
-
                 DiscoveryScreen(
                     viewModel = vm,
                     onTeacherClick = { teacherId ->
@@ -218,8 +254,47 @@ fun AppNavigation(
             }
         }
 
+        composable(Screen.BookingHistory.route) {
+            StudentBottomNav(
+                navController = navController,
+                currentRoute = currentRoute ?: Screen.BookingHistory.route
+            ) {
+                val vm: BookingHistoryViewModel = viewModel(factory = factory)
+                BookingHistoryScreen(
+                    viewModel = vm,
+                    onJoinSession = { booking ->
+                        NavArgs.sessionBooking = booking
+                        navController.navigate(Screen.Session.createRoute("student"))
+                    },
+                    onReview = { booking ->
+                        NavArgs.reviewBooking = booking
+                        navController.navigate(Screen.Review.route)
+                    }
+                )
+            }
+        }
 
-        // ── Teacher profile view (student sees this) ──────────────────────────
+        composable(Screen.StudentMessages.route) {
+            StudentBottomNav(
+                navController = navController,
+                currentRoute = currentRoute ?: Screen.StudentMessages.route
+            ) {
+                val vm: ConversationListViewModel = viewModel(factory = factory)
+                ConversationListScreen(
+                    viewModel = vm,
+                    onConversationClick = { convo, otherName ->
+                        NavArgs.activeConversation = convo
+                        NavArgs.chatOtherName = otherName
+                        NavArgs.chatOtherId = convo.participantIds
+                            .first { it != FirebaseAuth.getInstance().currentUser?.uid }
+                        navController.navigate(Screen.Chat.route)
+                    }
+                )
+            }
+        }
+
+        // ── Standalone screens (no bottom nav) ────────────────────────────────
+
         composable(Screen.TeacherProfile.route) { backStack ->
             val teacherId = backStack.arguments?.getString("teacherId") ?: return@composable
             val vm: TeacherProfileViewModel = viewModel(factory = factory)
@@ -234,16 +309,12 @@ fun AppNavigation(
             )
         }
 
-        // ── Booking slot selection ────────────────────────────────────────────
         composable(Screen.Booking.route) {
             val teacher = NavArgs.selectedTeacher ?: run {
                 navController.popBackStack()
                 return@composable
             }
-
             val vm: BookingViewModel = viewModel(factory = factory)
-
-
             BookingScreen(
                 viewModel = vm,
                 teacher = teacher,
@@ -255,14 +326,12 @@ fun AppNavigation(
             )
         }
 
-        // ── Payment (QR + transaction ID) ─────────────────────────────────────
         composable(Screen.Payment.route) {
             val booking = NavArgs.createdBooking ?: run {
                 navController.popBackStack()
                 return@composable
             }
             val vm: PaymentViewModel = viewModel(factory = factory)
-
             PaymentScreen(
                 viewModel = vm,
                 booking = booking,
@@ -275,7 +344,6 @@ fun AppNavigation(
             )
         }
 
-        // ── Payment success confirmation ───────────────────────────────────────
         composable(Screen.PaymentSuccess.route) {
             PaymentSuccessScreen(
                 onGoHome = {
@@ -284,19 +352,18 @@ fun AppNavigation(
             )
         }
 
-
-        // ── Session room (teacher + student) ──────────────────────────────────
         composable(Screen.Session.route) { backStack ->
             val roleStr = backStack.arguments?.getString("role") ?: "student"
             val role = if (roleStr == "teacher") SessionRole.TEACHER else SessionRole.STUDENT
             val booking = NavArgs.sessionBooking ?: run {
-                navController.popBackStack(); return@composable
+                navController.popBackStack()
+                return@composable
             }
-            val sessionViewModel: SessionViewModel = viewModel(factory = factory)
-            val whiteboardViewModel: WhiteboardViewModel = viewModel(factory = factory)
+            val sessionVm: SessionViewModel = viewModel(factory = factory)
+            val whiteboardVm: WhiteboardViewModel = viewModel(factory = factory)
             SessionScreen(
-                sessionViewModel = sessionViewModel,
-                whiteboardViewModel = whiteboardViewModel,
+                sessionViewModel = sessionVm,
+                whiteboardViewModel = whiteboardVm,
                 booking = booking,
                 role = role,
                 onSessionEnded = {
@@ -308,57 +375,11 @@ fun AppNavigation(
             )
         }
 
-        // ── Teacher messages ──────────────────────────────────────────────────
-        composable(Screen.TeacherMessages.route) {
-            TeacherBottomNav(
-                navController = navController,
-                currentRoute = currentRoute ?: Screen.TeacherMessages.route
-            ) { padding ->
-
-                val vm: ConversationListViewModel = viewModel(factory = factory)
-
-                ConversationListScreen(
-                    viewModel = vm,
-                    onConversationClick = { convo, otherName ->
-                        NavArgs.activeConversation = convo
-                        NavArgs.chatOtherName = otherName
-                        NavArgs.chatOtherId =
-                            convo.participantIds.first { it != FirebaseAuth.getInstance().currentUser?.uid }
-
-                        navController.navigate(Screen.Chat.route)
-                    }
-                )
-            }
-        }
-
-
-// ── Student messages ──────────────────────────────────────────────────
-        composable(Screen.StudentMessages.route) {
-            StudentBottomNav(
-                navController = navController,
-                currentRoute = currentRoute ?: Screen.StudentMessages.route
-            ) { padding ->
-
-                val vm: ConversationListViewModel = viewModel(factory = factory)
-
-                ConversationListScreen(
-                    viewModel = vm,
-                    onConversationClick = { convo, otherName ->
-                        NavArgs.activeConversation = convo
-                        NavArgs.chatOtherName = otherName
-                        NavArgs.chatOtherId =
-                            convo.participantIds.first { it != FirebaseAuth.getInstance().currentUser?.uid }
-
-                        navController.navigate(Screen.Chat.route)
-                    }
-                )
-            }
-        }
-
-
-// ── Chat thread ───────────────────────────────────────────────────────
         composable(Screen.Chat.route) {
-            val convo = NavArgs.activeConversation ?: run { navController.popBackStack(); return@composable }
+            val convo = NavArgs.activeConversation ?: run {
+                navController.popBackStack()
+                return@composable
+            }
             val vm: ChatViewModel = viewModel(factory = factory)
             ChatScreen(
                 viewModel = vm,
@@ -369,13 +390,28 @@ fun AppNavigation(
             )
         }
 
-        // ── Admin panel ───────────────────────────────────────────────────────
+        composable(Screen.Review.route) {
+            val booking = NavArgs.reviewBooking ?: run {
+                navController.popBackStack()
+                return@composable
+            }
+            val vm: ReviewViewModel = viewModel(factory = factory)
+            ReviewScreen(
+                viewModel = vm,
+                booking = booking,
+                onSubmitted = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(Screen.AdminPanel.route) {
             val vm: AdminDashboardViewModel = viewModel(factory = factory)
             AdminDashboardScreen(viewModel = vm)
         }
     }
 }
+
+// ── Payment success screen ────────────────────────────────────────────────────
 
 @Composable
 private fun PaymentSuccessScreen(onGoHome: () -> Unit) {
