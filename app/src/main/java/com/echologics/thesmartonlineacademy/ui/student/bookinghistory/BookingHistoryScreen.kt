@@ -28,7 +28,8 @@ fun BookingHistoryScreen(
     onReview: (Booking) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val filtered = viewModel.filteredBookings()
+    val filtered by viewModel.filteredBookings.collectAsState()
+
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("My sessions") }) }

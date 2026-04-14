@@ -8,8 +8,11 @@ import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class HistoryTab(val label: String) {
@@ -36,6 +39,24 @@ class BookingHistoryViewModel(
 
     private val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+    val filteredBookings: StateFlow<List<Booking>> =
+        uiState.map { state ->
+            when (state.selectedTab) {
+                HistoryTab.UPCOMING -> state.bookings.filter {
+                    it.status == BookingStatus.CONFIRMED ||
+                            it.status == BookingStatus.PAYMENT_SUBMITTED
+                }
+
+                HistoryTab.PAST -> state.bookings.filter {
+                    it.status == BookingStatus.COMPLETED ||
+                            it.status == BookingStatus.CANCELLED
+                }
+
+                HistoryTab.ALL -> state.bookings
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+
     init {
         load()
     }
@@ -45,19 +66,6 @@ class BookingHistoryViewModel(
     }
 
     fun refresh() = load()
-
-    fun filteredBookings(): List<Booking> {
-        val all = _uiState.value.bookings
-        return when (_uiState.value.selectedTab) {
-            HistoryTab.UPCOMING -> all.filter {
-                it.status == BookingStatus.CONFIRMED || it.status == BookingStatus.PAYMENT_SUBMITTED
-            }
-            HistoryTab.PAST -> all.filter {
-                it.status == BookingStatus.COMPLETED || it.status == BookingStatus.CANCELLED
-            }
-            HistoryTab.ALL -> all
-        }
-    }
 
     fun canReview(booking: Booking): Boolean {
         return booking.status == BookingStatus.COMPLETED &&
