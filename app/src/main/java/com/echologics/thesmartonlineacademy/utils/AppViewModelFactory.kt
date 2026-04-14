@@ -23,13 +23,14 @@ import com.echologics.thesmartonlineacademy.ui.student.discovery.DiscoveryViewMo
 import com.echologics.thesmartonlineacademy.ui.student.payment.PaymentViewModel
 import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherProfileViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsViewModel
+import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditViewModel
 
 class AppViewModelFactory(
     private val authRepository: AuthRepository,
     private val messagingRepository: MessagingRepository,
     private val adminRepository: AdminRepository,
     private val bookingRepository: BookingRepository,
-    private val reviewRepository: ReviewRepository
+    private val reviewRepository: ReviewRepository,
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -89,6 +90,9 @@ class AppViewModelFactory(
 
             modelClass.isAssignableFrom(ReviewViewModel::class.java) ->
                 ReviewViewModel(reviewRepository) as T
+
+            modelClass.isAssignableFrom(TeacherProfileEditViewModel::class.java) ->
+                TeacherProfileEditViewModel(authRepository) as T
 
             else -> throw IllegalArgumentException(
                 "Unknown ViewModel class: ${modelClass.name}"
