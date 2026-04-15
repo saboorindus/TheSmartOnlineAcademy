@@ -11,7 +11,7 @@ import com.echologics.thesmartonlineacademy.ui.common.components.StepProgressBar
 import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.steps.Step1PersonalInfo
 import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.steps.Step2TeachingDetails
 import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.steps.Step3Credentials
-import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.steps.Step4RateAndSessions
+import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.steps.Step4Pricing
 import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.steps.Step5Availability
 import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.steps.Step6ReviewAndSubmit
 
@@ -60,7 +60,7 @@ fun TeacherOnboardingScreen(
                 1 -> Step1PersonalInfo(uiState = uiState, viewModel = viewModel)
                 2 -> Step2TeachingDetails(uiState = uiState, viewModel = viewModel)
                 3 -> Step3Credentials(uiState = uiState, viewModel = viewModel)
-                4 -> Step4RateAndSessions(uiState = uiState, viewModel = viewModel)
+                4 -> Step4Pricing(uiState = uiState, viewModel = viewModel)
                 5 -> Step5Availability(uiState = uiState, viewModel = viewModel)
                 6 -> Step6ReviewAndSubmit(uiState = uiState, viewModel = viewModel)
             }

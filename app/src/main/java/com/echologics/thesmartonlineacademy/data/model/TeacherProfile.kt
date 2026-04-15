@@ -15,11 +15,23 @@ data class TeacherProfile(
     val teachingStyles: List<String> = emptyList(),
     val yearsExperience: String = "",
     val education: String = "",
-    val hourlyRate: String = "",
-    val sessionLengths: List<String> = emptyList(),
     val availabilitySlots: Map<String, List<String>> = emptyMap(),
     val trialSessionEnabled: Boolean = false,
     val trialRate: String = "",
     val approvalStatus: ApprovalStatus = ApprovalStatus.PENDING,
-    val isVerified: Boolean = false
-)
+    val isVerified: Boolean = false,
+
+    val ratePerTenMin: Int = 0,
+    val currency: String = "PKR"
+) {
+    // Convenience display string shown on teacher cards
+    fun displayRate(): String = "$currency $ratePerTenMin / 10 min"
+
+    // Calculate total for a given duration in minutes
+    fun totalFor(durationMinutes: Int): Int {
+        val blocks = durationMinutes / 10
+        return blocks * ratePerTenMin
+    }
+
+    fun totalDisplayFor(durationMinutes: Int): String = "$currency ${totalFor(durationMinutes)}"
+}

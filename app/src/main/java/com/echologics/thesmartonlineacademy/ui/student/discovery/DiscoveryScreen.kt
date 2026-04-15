@@ -211,7 +211,7 @@ fun TeacherCard(teacher: TeacherProfile, onClick: () -> Unit) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = teacher.hourlyRate,
+                        text = teacher.ratePerTenMin.toString(),
                         fontWeight = FontWeight.SemiBold,
                         color = Purple,
                         fontSize = 14.sp

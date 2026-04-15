@@ -70,13 +70,11 @@ fun BookingScreen(
                 ) {
                     Column {
                         Text(teacher.fullName, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Purple)
-                        Text(
-                            teacher.subjects.take(2).joinToString(", "),
-                            fontSize = 12.sp,
-                            color = Purple.copy(alpha = 0.7f)
-                        )
+                        Text(teacher.subjects.take(2).joinToString(", "), fontSize = 12.sp, color = Purple.copy(alpha = 0.7f))
                     }
-                    Text(teacher.hourlyRate, fontWeight = FontWeight.SemiBold, color = Purple)
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(teacher.displayRate(), fontWeight = FontWeight.SemiBold, color = Purple, fontSize = 13.sp)
+                    }
                 }
             }
 
@@ -97,16 +95,104 @@ fun BookingScreen(
             Spacer(Modifier.height(20.dp))
 
             // Session length
-            SectionTitle("Session length")
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                teacher.sessionLengths.forEach { length ->
-                    SelectableChip(
-                        label = length,
-                        selected = uiState.selectedSessionLength == length,
-                        onClick = { viewModel.onSessionLengthSelected(length) }
+            SectionTitle("Session duration")
+//            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+//                teacher.sessionLengths.forEach { length ->
+//                    SelectableChip(
+//                        label = length,
+//                        selected = uiState.selectedSessionLength == length,
+//                        onClick = { viewModel.onSessionLengthSelected(length) }
+//                    )
+//                }
+//            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("10m", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                Text(
+                    uiState.durationDisplay,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Purple
+                )
+                Text("3h", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+            }
+
+            Slider(
+                value = uiState.sliderPosition,
+                onValueChange = viewModel::onSliderChange,
+                valueRange = 0f..17f,
+                steps = 16,   // 18 positions total (10, 20, ..., 180) → 16 steps between them
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = Purple,
+                    activeTrackColor = Purple,
+                    inactiveTrackColor = Purple.copy(alpha = 0.2f)
+                )
+            )
+
+            // Quick select buttons for common durations
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(30, 60, 90, 120).forEach { mins ->
+                    OutlinedButton(
+                        onClick = { viewModel.onSliderChange(((mins / 10) - 1).toFloat()) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = if (uiState.durationMinutes == mins) 1.5.dp else 0.5.dp,
+                            color = if (uiState.durationMinutes == mins) Purple
+                            else MaterialTheme.colorScheme.outline
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = if (uiState.durationMinutes == mins) Purple
+                            else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    ) {
+                        Text(
+                            formatDuration(mins),
+                            fontSize = 12.sp,
+                            fontWeight = if (uiState.durationMinutes == mins) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+
+            // Live price card
+            Spacer(Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = PurpleLight),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Session total", fontSize = 13.sp, color = Purple.copy(alpha = 0.7f))
+                        Text(
+                            "${uiState.durationDisplay} · ${teacher.ratePerTenMin} ${teacher.currency}/10min",
+                            fontSize = 11.sp,
+                            color = Purple.copy(alpha = 0.5f)
+                        )
+                    }
+                    Text(
+                        uiState.totalDisplay,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 20.sp,
+                        color = Purple
                     )
                 }
             }
+
 
             Spacer(Modifier.height(20.dp))
 
@@ -156,37 +242,38 @@ fun BookingScreen(
                 )
             )
 
-            // Price summary
-            if (uiState.selectedSessionLength.isNotBlank()) {
-                Spacer(Modifier.height(20.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text("Session total", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
-                            Text(
-                                "${uiState.selectedSessionLength} · ${uiState.selectedSubject}",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                            )
-                        }
-                        Text(
-                            text = computeTotal(teacher.hourlyRate, uiState.selectedSessionLength),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp,
-                            color = Purple
-                        )
-                    }
-                }
-            }
+//            // Price summary
+//            if (uiState.selectedSessionLength.isNotBlank()) {
+//                Spacer(Modifier.height(20.dp))
+//                Card(
+//                    modifier = Modifier.fillMaxWidth(),
+//                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+//                    shape = RoundedCornerShape(10.dp)
+//                ) {
+//                    Row(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(14.dp),
+//                        horizontalArrangement = Arrangement.SpaceBetween
+//                    ) {
+//                        Column {
+//                            Text("Session total", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+//                            Text(
+//                                "${uiState.selectedSessionLength} · ${uiState.selectedSubject}",
+//                                fontSize = 12.sp,
+//                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+//                            )
+//                        }
+//                        Text(
+//                            text = computeTotal(teacher.hourlyRate, uiState.selectedSessionLength),
+//                            fontWeight = FontWeight.SemiBold,
+//                            fontSize = 18.sp,
+//                            color = Purple
+//                        )
+//                    }
+//                }
+//            }
+
 
             if (uiState.error != null) {
                 Spacer(Modifier.height(12.dp))
@@ -218,14 +305,25 @@ private fun SectionTitle(text: String) {
     )
 }
 
-private fun computeTotal(hourlyRate: String, sessionLength: String): String {
-    val rate = hourlyRate.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
-    val multiplier = when {
-        sessionLength.contains("30") -> 0.5
-        sessionLength.contains("90") -> 1.5
-        else -> 1.0
+
+private fun formatDuration(minutes: Int): String {
+    val h = minutes / 60
+    val m = minutes % 60
+    return when {
+        h == 0 -> "${m}m"
+        m == 0 -> "${h}h"
+        else -> "${h}h ${m}m"
     }
-    val total = (rate * multiplier).toInt()
-    val currency = if (hourlyRate.contains("PKR", ignoreCase = true)) "PKR" else ""
-    return "$currency $total".trim()
 }
+
+//private fun computeTotal(hourlyRate: String, sessionLength: String): String {
+//    val rate = hourlyRate.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
+//    val multiplier = when {
+//        sessionLength.contains("30") -> 0.5
+//        sessionLength.contains("90") -> 1.5
+//        else -> 1.0
+//    }
+//    val total = (rate * multiplier).toInt()
+//    val currency = if (hourlyRate.contains("PKR", ignoreCase = true)) "PKR" else ""
+//    return "$currency $total".trim()
+//}

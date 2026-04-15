@@ -7,6 +7,7 @@ import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,8 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -34,7 +37,7 @@ fun TeacherProfileEditScreen(
     val subjects = listOf("Mathematics", "Physics", "Chemistry", "Biology", "English", "Urdu", "History", "Computer Science", "Economics", "Accounting")
     val levels = listOf("Primary", "O-Level", "A-Level", "University", "Adult / Professional")
     val styles = listOf("Exam prep", "Conversational", "Step-by-step", "Project-based", "Problem solving")
-    val sessionLengths = listOf("30 min", "60 min", "90 min")
+//    val sessionLengths = listOf("30 min", "60 min", "90 min")
     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     val slots = listOf("Morning", "Afternoon", "Evening")
 
@@ -126,18 +129,60 @@ fun TeacherProfileEditScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline)
 
             // ── Pricing ───────────────────────────────────────────────────────
-            SectionHeader("Pricing & sessions")
-            AppTextField(value = uiState.hourlyRate, onValueChange = viewModel::onHourlyRateChange, label = "Hourly rate (e.g. PKR 2500)")
-            Spacer(Modifier.height(12.dp))
+            SectionHeader("Pricing")
+//            AppTextField(value = uiState.hourlyRate, onValueChange = viewModel::onHourlyRateChange, label = "Hourly rate (e.g. PKR 2500)")
 
-            ChipGroupLabel("Session lengths")
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                sessionLengths.forEach { l ->
-                    SelectableChip(label = l, selected = uiState.sessionLengths.contains(l), onClick = { viewModel.toggleSessionLength(l) })
+            ChipGroupLabel("Currency")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("PKR", "USD", "GBP", "AED").forEach { c ->
+                    SelectableChip(label = c, selected = uiState.currency == c, onClick = { viewModel.onCurrencyChange(c) })
                 }
             }
 
             Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = uiState.ratePerTenMin,
+                onValueChange = viewModel::onRatePerTenMinChange,
+                label = { Text("Price per 10 minutes") },
+                placeholder = { Text("e.g. 250") },
+                prefix = { Text("${uiState.currency}  ") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Purple,
+                    focusedLabelColor = Purple,
+                    cursorColor = Purple
+                )
+            )
+
+            // Live price preview
+            val previews = viewModel.previewPrices()
+            if (previews.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                ChipGroupLabel("Price breakdown preview")
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = PurpleLight),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        previews.forEach { (duration, price) ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(duration, fontSize = 13.sp, color = Purple)
+                                Text(price, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Purple)
+                            }
+                            if (duration != previews.last().first) {
+                                HorizontalDivider(thickness = 0.5.dp, color = Purple.copy(alpha = 0.15f))
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text("Offer trial session", modifier = Modifier.weight(1f))
                 Switch(checked = uiState.trialSessionEnabled, onCheckedChange = viewModel::onTrialToggle)
@@ -147,6 +192,24 @@ fun TeacherProfileEditScreen(
                 AppTextField(value = uiState.trialRate, onValueChange = viewModel::onTrialRateChange, label = "Trial session rate")
             }
 
+
+//            ChipGroupLabel("Session lengths")
+//            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+//                sessionLengths.forEach { l ->
+//                    SelectableChip(label = l, selected = uiState.sessionLengths.contains(l), onClick = { viewModel.toggleSessionLength(l) })
+//                }
+//            }
+//
+//            Spacer(Modifier.height(12.dp))
+//            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+//                Text("Offer trial session", modifier = Modifier.weight(1f))
+//                Switch(checked = uiState.trialSessionEnabled, onCheckedChange = viewModel::onTrialToggle)
+//            }
+//            if (uiState.trialSessionEnabled) {
+//                Spacer(Modifier.height(8.dp))
+//                AppTextField(value = uiState.trialRate, onValueChange = viewModel::onTrialRateChange, label = "Trial session rate")
+//            }
+//
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline)
 
             // ── Availability ──────────────────────────────────────────────────

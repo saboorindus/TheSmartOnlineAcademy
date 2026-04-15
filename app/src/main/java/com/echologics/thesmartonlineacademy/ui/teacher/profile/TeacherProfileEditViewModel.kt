@@ -25,11 +25,12 @@ data class TeacherProfileEditUiState(
     val subjects: List<String> = emptyList(),
     val levels: List<String> = emptyList(),
     val teachingStyles: List<String> = emptyList(),
-    val hourlyRate: String = "",
-    val sessionLengths: List<String> = emptyList(),
     val trialSessionEnabled: Boolean = false,
     val trialRate: String = "",
-    val availabilitySlots: Map<String, List<String>> = emptyMap()
+    val availabilitySlots: Map<String, List<String>> = emptyMap(),
+
+    val ratePerTenMin: String = "",
+    val currency: String = "PKR",
 )
 
 class TeacherProfileEditViewModel(
@@ -61,8 +62,8 @@ class TeacherProfileEditViewModel(
                         subjects = p.subjects,
                         levels = p.levels,
                         teachingStyles = p.teachingStyles,
-                        hourlyRate = p.hourlyRate,
-                        sessionLengths = p.sessionLengths,
+                        ratePerTenMin = if (p.ratePerTenMin > 0) p.ratePerTenMin.toString() else "",
+                        currency = p.currency.ifBlank { "PKR" },
                         trialSessionEnabled = p.trialSessionEnabled,
                         trialRate = p.trialRate,
                         availabilitySlots = p.availabilitySlots
@@ -80,15 +81,21 @@ class TeacherProfileEditViewModel(
     fun onFullNameChange(v: String) = update { copy(fullName = v) }
     fun onCountryChange(v: String) = update { copy(country = v) }
     fun onBioChange(v: String) = update { copy(bio = v) }
-    fun onHourlyRateChange(v: String) = update { copy(hourlyRate = v) }
+    fun onCurrencyChange(v: String) = update { copy(currency = v) }
     fun onTrialRateChange(v: String) = update { copy(trialRate = v) }
     fun onTrialToggle(v: Boolean) = update { copy(trialSessionEnabled = v) }
+
+    fun onRatePerTenMinChange(v: String) {
+        if (v.isEmpty() || v.all { it.isDigit() }) {
+            update { copy(ratePerTenMin = v) }
+        }
+    }
 
     fun toggleLanguage(lang: String) = update { copy(languages = toggle(languages, lang)) }
     fun toggleSubject(s: String) = update { copy(subjects = toggle(subjects, s)) }
     fun toggleLevel(l: String) = update { copy(levels = toggle(levels, l)) }
     fun toggleStyle(s: String) = update { copy(teachingStyles = toggle(teachingStyles, s)) }
-    fun toggleSessionLength(l: String) = update { copy(sessionLengths = toggle(sessionLengths, l)) }
+//    fun toggleSessionLength(l: String) = update { copy(sessionLengths = toggle(sessionLengths, l)) }
 
     fun toggleSlot(day: String, slot: String) {
         val current = _uiState.value.availabilitySlots.toMutableMap()
@@ -98,10 +105,24 @@ class TeacherProfileEditViewModel(
         _uiState.value = _uiState.value.copy(availabilitySlots = current)
     }
 
+    fun previewPrices(): List<Pair<String, String>> {
+        val rate = _uiState.value.ratePerTenMin.toIntOrNull() ?: return emptyList()
+        val cur = _uiState.value.currency
+        return listOf(10, 20, 30, 40, 50, 60, 90, 120, 150, 180).map { mins ->
+            val total = rate * (mins / 10)
+            Pair(formatDuration(mins), "$cur $total")
+        }
+    }
+
     fun save() {
         val s = _uiState.value
+        val rate = s.ratePerTenMin.toIntOrNull()
         if (s.fullName.isBlank()) {
-            _uiState.value = s.copy(error = "Name cannot be empty")
+            update { copy(error = "Name cannot be empty") }
+            return
+        }
+        if (rate == null || rate <= 0) {
+            update { copy(error = "Please enter a valid rate per 10 minutes") }
             return
         }
         _uiState.value = s.copy(isSaving = true, error = null)
@@ -115,8 +136,8 @@ class TeacherProfileEditViewModel(
                     "subjects" to s.subjects,
                     "levels" to s.levels,
                     "teachingStyles" to s.teachingStyles,
-                    "hourlyRate" to s.hourlyRate,
-                    "sessionLengths" to s.sessionLengths,
+                    "ratePerTenMin" to rate,
+                    "currency" to s.currency,
                     "trialSessionEnabled" to s.trialSessionEnabled,
                     "trialRate" to s.trialRate,
                     "availabilitySlots" to s.availabilitySlots
@@ -138,3 +159,13 @@ class TeacherProfileEditViewModel(
 
 private fun toggle(list: List<String>, item: String): List<String> =
     if (list.contains(item)) list - item else list + item
+
+private fun formatDuration(minutes: Int): String {
+    val h = minutes / 60
+    val m = minutes % 60
+    return when {
+        h == 0 -> "${m}m"
+        m == 0 -> "${h}h"
+        else -> "${h}h ${m}m"
+    }
+}

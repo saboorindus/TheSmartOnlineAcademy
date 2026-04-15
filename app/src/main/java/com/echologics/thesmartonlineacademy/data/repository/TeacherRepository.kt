@@ -34,8 +34,7 @@ class TeacherRepository {
             }
             if (maxRate != null) {
                 teachers = teachers.filter {
-                    val rate = it.hourlyRate.replace(Regex("[^0-9]"), "").toIntOrNull() ?: Int.MAX_VALUE
-                    rate <= maxRate
+                    it.ratePerTenMin >= 10 && it.ratePerTenMin <= maxRate
                 }
             }
             Result.success(teachers)

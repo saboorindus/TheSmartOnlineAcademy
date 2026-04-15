@@ -17,13 +17,37 @@ data class BookingUiState(
     val teacher: TeacherProfile? = null,
     val selectedDay: String = "",
     val selectedTimeSlot: String = "",
-    val selectedSessionLength: String = "",
     val selectedSubject: String = "",
     val scheduledDate: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
-    val createdBooking: Booking? = null
-)
+    val createdBooking: Booking? = null,
+
+    val durationMinutes: Int = 60,
+) {
+    val totalAmount: Int get() {
+        val rate = teacher?.ratePerTenMin ?: 0
+        return rate * (durationMinutes / 10)
+    }
+
+    val totalDisplay: String get() {
+        val cur = teacher?.currency ?: "PKR"
+        return "$cur $totalAmount"
+    }
+
+    val durationDisplay: String get() {
+        val h = durationMinutes / 60
+        val m = durationMinutes % 60
+        return when {
+            h == 0 -> "${m}m"
+            m == 0 -> "${h}h"
+            else -> "${h}h ${m}m"
+        }
+    }
+
+    // Slider position (0..17 maps to 10..180 min in steps of 10)
+    val sliderPosition: Float get() = ((durationMinutes / 10) - 1).toFloat()
+}
 
 class BookingViewModel(
     private val bookingRepository: BookingRepository = BookingRepository()
@@ -36,7 +60,7 @@ class BookingViewModel(
         _uiState.value = _uiState.value.copy(
             teacher = teacher,
             selectedSubject = teacher.subjects.firstOrNull() ?: "",
-            selectedSessionLength = teacher.sessionLengths.firstOrNull() ?: ""
+            durationMinutes = 60
         )
     }
 
@@ -48,9 +72,15 @@ class BookingViewModel(
         _uiState.value = _uiState.value.copy(selectedTimeSlot = slot)
     }
 
-    fun onSessionLengthSelected(length: String) {
-        _uiState.value = _uiState.value.copy(selectedSessionLength = length)
+    // Slider value 0..17 → duration 10..180 minutes in steps of 10
+    fun onSliderChange(position: Float) {
+        val minutes = (position.toInt() + 1) * 10
+        _uiState.value = _uiState.value.copy(durationMinutes = minutes.coerceIn(10, 180))
     }
+
+//    fun onSessionLengthSelected(length: String) {
+//        _uiState.value = _uiState.value.copy(selectedSessionLength = length)
+//    }
 
     fun onSubjectSelected(subject: String) {
         _uiState.value = _uiState.value.copy(selectedSubject = subject)
@@ -64,8 +94,8 @@ class BookingViewModel(
         val s = _uiState.value
         return s.selectedDay.isNotBlank() &&
                 s.selectedTimeSlot.isNotBlank() &&
-                s.selectedSessionLength.isNotBlank() &&
-                s.selectedSubject.isNotBlank()
+                s.selectedSubject.isNotBlank() &&
+                s.durationMinutes >= 10
     }
 
     fun confirmBooking() {
@@ -80,13 +110,7 @@ class BookingViewModel(
 
         viewModelScope.launch {
             // Get student name from Firestore
-            val studentName = try {
-                val doc = FirebaseFirestore.getInstance()
-                    .collection("students").document(uid).get().await()
-                doc.getString("fullName") ?: "Student"
-            } catch (e: Exception) { "Student" }
-
-            val totalAmount = calculateTotal(teacher.hourlyRate, state.selectedSessionLength)
+            val studentName = getStudentName(uid)
 
             val booking = Booking(
                 studentId = uid,
@@ -94,15 +118,15 @@ class BookingViewModel(
                 teacherId = teacher.uid,
                 teacherName = teacher.fullName,
                 subject = state.selectedSubject,
-                sessionLength = state.selectedSessionLength,
+                durationMinutes = state.durationMinutes,
                 scheduledDate = state.scheduledDate,
                 scheduledTime = state.selectedTimeSlot,
                 slotDay = state.selectedDay,
                 slotTime = state.selectedTimeSlot,
-                hourlyRate = teacher.hourlyRate,
-                totalAmount = totalAmount
+                ratePerTenMin = teacher.ratePerTenMin,
+                currency = teacher.currency,
+                totalAmount = state.totalDisplay
             )
-
             val result = bookingRepository.createBooking(booking)
             result.fold(
                 onSuccess = { created ->
@@ -115,15 +139,23 @@ class BookingViewModel(
         }
     }
 
-    private fun calculateTotal(hourlyRate: String, sessionLength: String): String {
-        val rate = hourlyRate.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
-        val multiplier = when {
-            sessionLength.contains("30") -> 0.5
-            sessionLength.contains("90") -> 1.5
-            else -> 1.0
-        }
-        val total = (rate * multiplier).toInt()
-        val currency = if (hourlyRate.contains("PKR", ignoreCase = true)) "PKR" else ""
-        return "$currency $total".trim()
+    private suspend fun getStudentName(uid: String): String {
+        return try {
+            val doc = FirebaseFirestore.getInstance()
+                .collection("students").document(uid).get().await()
+            doc.getString("fullName") ?: "Student"
+        } catch (e: Exception) { "Student" }
     }
+
+//    private fun calculateTotal(hourlyRate: String, sessionLength: String): String {
+//        val rate = hourlyRate.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
+//        val multiplier = when {
+//            sessionLength.contains("30") -> 0.5
+//            sessionLength.contains("90") -> 1.5
+//            else -> 1.0
+//        }
+//        val total = (rate * multiplier).toInt()
+//        val currency = if (hourlyRate.contains("PKR", ignoreCase = true)) "PKR" else ""
+//        return "$currency $total".trim()
+//    }
 }

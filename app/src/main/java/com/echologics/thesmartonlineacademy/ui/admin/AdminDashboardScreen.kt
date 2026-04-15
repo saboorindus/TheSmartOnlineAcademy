@@ -286,7 +286,10 @@ private fun TeacherApprovalCard(
                     Text(teacher.fullName, fontWeight = FontWeight.SemiBold, color = Purple)
                     Text(teacher.country, fontSize = 12.sp, color = Purple.copy(alpha = 0.6f))
                 }
-                Text(teacher.hourlyRate, fontWeight = FontWeight.SemiBold, color = Purple, fontSize = 13.sp)
+//                Text(teacher.hourlyRate, fontWeight = FontWeight.SemiBold, color = Purple, fontSize = 13.sp)
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(teacher.displayRate(), fontWeight = FontWeight.SemiBold, color = Purple, fontSize = 13.sp)
+                }
             }
 
             Spacer(Modifier.height(8.dp))

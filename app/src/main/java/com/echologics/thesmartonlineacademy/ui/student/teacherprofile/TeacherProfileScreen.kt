@@ -175,8 +175,8 @@ private fun TeacherProfileContent(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                InfoPill(label = "Rate", value = teacher.hourlyRate)
-                InfoPill(label = "Sessions", value = teacher.sessionLengths.joinToString(", "))
+                InfoPill(label = "Rate", value = teacher.ratePerTenMin.toString())
+//                InfoPill(label = "Sessions", value = teacher.sessionLengths.joinToString(", "))
                 if (teacher.trialSessionEnabled) {
                     InfoPill(label = "Trial", value = teacher.trialRate)
                 }

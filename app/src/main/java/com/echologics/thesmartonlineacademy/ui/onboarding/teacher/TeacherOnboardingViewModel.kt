@@ -27,8 +27,8 @@ data class TeacherOnboardingUiState(
     val yearsExperience: String = "",
     val education: String = "",
     // Step 4 — Rate & session lengths
-    val hourlyRate: String = "",
-    val sessionLengths: List<String> = emptyList(),
+    val ratePerTenMin: String = "",          // e.g. "250"
+    val currency: String = "PKR",
     val trialSessionEnabled: Boolean = false,
     val trialRate: String = "",
     // Step 5 — Availability
@@ -90,14 +90,24 @@ class TeacherOnboardingViewModel(private val authRepository: AuthRepository) : V
     fun onEducationChange(v: String) { _uiState.value = _uiState.value.copy(education = v) }
 
     // Step 4
-    fun onHourlyRateChange(v: String) { _uiState.value = _uiState.value.copy(hourlyRate = v) }
-    fun onTrialRateChange(v: String) { _uiState.value = _uiState.value.copy(trialRate = v) }
-    fun onTrialSessionToggle(v: Boolean) { _uiState.value = _uiState.value.copy(trialSessionEnabled = v) }
-    fun toggleSessionLength(length: String) {
-        val current = _uiState.value.sessionLengths.toMutableList()
-        if (current.contains(length)) current.remove(length) else current.add(length)
-        _uiState.value = _uiState.value.copy(sessionLengths = current)
+    fun onRatePerTenMinChange(v: String) {
+        // Only allow numeric input
+        if (v.isEmpty() || v.all { it.isDigit() }) {
+            _uiState.value = _uiState.value.copy(ratePerTenMin = v)
+        }
     }
+    fun onCurrencyChange(c: String) { _uiState.value = _uiState.value.copy(currency = c) }
+    fun onTrialRateChange(v: String) { _uiState.value = _uiState.value.copy(trialRate = v) }
+    fun onTrialToggle(v: Boolean) { _uiState.value = _uiState.value.copy(trialSessionEnabled = v) }
+
+//    fun onHourlyRateChange(v: String) { _uiState.value = _uiState.value.copy(hourlyRate = v) }
+//    fun onTrialRateChange(v: String) { _uiState.value = _uiState.value.copy(trialRate = v) }
+//    fun onTrialSessionToggle(v: Boolean) { _uiState.value = _uiState.value.copy(trialSessionEnabled = v) }
+//    fun toggleSessionLength(length: String) {
+//        val current = _uiState.value.sessionLengths.toMutableList()
+//        if (current.contains(length)) current.remove(length) else current.add(length)
+//        _uiState.value = _uiState.value.copy(sessionLengths = current)
+//    }
 
     // Step 5
     fun toggleSlot(day: String, slot: String) {
@@ -108,11 +118,31 @@ class TeacherOnboardingViewModel(private val authRepository: AuthRepository) : V
         _uiState.value = _uiState.value.copy(availabilitySlots = current)
     }
 
+    // Preview helpers for the review step
+    fun rateDisplay(): String {
+        val rate = _uiState.value.ratePerTenMin
+        val cur = _uiState.value.currency
+        return if (rate.isBlank()) "—" else "$cur $rate / 10 min"
+    }
+
+    fun examplePrices(): String {
+        val rate = _uiState.value.ratePerTenMin.toIntOrNull() ?: return ""
+        val cur = _uiState.value.currency
+        val p30 = rate * 3
+        val p60 = rate * 6
+        val p90 = rate * 9
+        return "30m = $cur $p30  ·  60m = $cur $p60  ·  90m = $cur $p90"
+    }
+
     // Step 6 — Submit
     fun submit() {
         val s = _uiState.value
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
             _uiState.value = s.copy(error = "Not authenticated")
+            return
+        }
+        val rate = s.ratePerTenMin.toIntOrNull() ?: run {
+            _uiState.value = s.copy(error = "Please enter a valid rate")
             return
         }
         _uiState.value = s.copy(isLoading = true, error = null)
@@ -127,8 +157,8 @@ class TeacherOnboardingViewModel(private val authRepository: AuthRepository) : V
             teachingStyles = s.teachingStyles,
             yearsExperience = s.yearsExperience,
             education = s.education,
-            hourlyRate = s.hourlyRate,
-            sessionLengths = s.sessionLengths,
+            ratePerTenMin = rate,
+            currency = s.currency,
             availabilitySlots = s.availabilitySlots,
             trialSessionEnabled = s.trialSessionEnabled,
             trialRate = s.trialRate,
@@ -142,4 +172,20 @@ class TeacherOnboardingViewModel(private val authRepository: AuthRepository) : V
             )
         }
     }
+
+    private fun toggleList(
+        getter: TeacherOnboardingUiState.() -> List<String>,
+        setter: TeacherOnboardingUiState.(List<String>) -> TeacherOnboardingUiState
+    ) {
+        // Not used directly — kept for reference
+    }
+
+    private fun toggle(list: List<String>, item: String) =
+        if (list.contains(item)) list - item else list + item
+
+    // Convenience shorthands
+    private fun TeacherOnboardingViewModel.toggleList(
+        getList: TeacherOnboardingUiState.() -> List<String>,
+        withUpdated: TeacherOnboardingUiState.(List<String>) -> TeacherOnboardingUiState
+    ) { /* no-op placeholder */ }
 }
