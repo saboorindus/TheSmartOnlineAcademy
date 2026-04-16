@@ -68,17 +68,17 @@ fun SignupScreen(
             modifier = Modifier.padding(top = 4.dp, bottom = 32.dp)
         )
 
-        AppTextField(
-            value = uiState.fullName,
-            onValueChange = viewModel::onFullNameChange,
-            label = "Full name",
-            isError = uiState.error != null,
-            modifier = Modifier.focusRequester(nameFocus),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            keyboardActions = KeyboardActions(
-                onNext = { emailFocus.requestFocus() }
-            )
-        )
+//        AppTextField(
+//            value = uiState.fullName,
+//            onValueChange = viewModel::onFullNameChange,
+//            label = "Full name",
+//            isError = uiState.error != null,
+//            modifier = Modifier.focusRequester(nameFocus),
+//            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+//            keyboardActions = KeyboardActions(
+//                onNext = { emailFocus.requestFocus() }
+//            )
+//        )
 
         Spacer(modifier = Modifier.height(12.dp))
 

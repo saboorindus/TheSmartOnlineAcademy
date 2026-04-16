@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import java.util.TimeZone
 
 data class StudentOnboardingUiState(
+    val fullName: String = "",
     val currentStep: Int = 1,
     val totalSteps: Int = 3,
     // Step 1 — Goals
@@ -33,6 +34,7 @@ class StudentOnboardingViewModel(private val authRepository: AuthRepository) : V
 
     private val _uiState = MutableStateFlow(StudentOnboardingUiState())
     val uiState: StateFlow<StudentOnboardingUiState> = _uiState.asStateFlow()
+    fun onFullNameChange(v: String) { _uiState.value = _uiState.value.copy(fullName = v, error = null) }
 
     fun nextStep() {
         val s = _uiState.value
@@ -71,8 +73,14 @@ class StudentOnboardingViewModel(private val authRepository: AuthRepository) : V
             _uiState.value = s.copy(error = "Not authenticated")
             return
         }
+
+        when {
+            s.fullName.isBlank() -> { _uiState.value = s.copy(error = "Full name is required"); return }
+        }
+
         _uiState.value = s.copy(isLoading = true, error = null)
         val profile = StudentProfile(
+            fullName = s.fullName,
             uid = uid,
             subjects = s.subjects,
             level = s.level,

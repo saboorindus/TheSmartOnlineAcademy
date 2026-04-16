@@ -7,6 +7,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -14,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
+import com.echologics.thesmartonlineacademy.ui.common.components.CountryPickerField
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
 import com.echologics.thesmartonlineacademy.ui.common.components.SelectableChip
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
@@ -28,6 +33,33 @@ import com.echologics.thesmartonlineacademy.ui.onboarding.teacher.TeacherOnboard
 
 fun Step1PersonalInfo(uiState: TeacherOnboardingUiState, viewModel: TeacherOnboardingViewModel) {
     val languages = listOf("English", "Urdu", "Punjabi", "Arabic", "French", "German")
+    var countryExpanded by remember { mutableStateOf(false) } // only screen state
+
+    val countries = listOf(
+        "Afghanistan",
+        "Australia",
+        "Bangladesh",
+        "Canada",
+        "China",
+        "France",
+        "Germany",
+        "India",
+        "Indonesia",
+        "Iran",
+        "Iraq",
+        "Italy",
+        "Japan",
+        "Malaysia",
+        "Nepal",
+        "Pakistan",
+        "Saudi Arabia",
+        "South Africa",
+        "Sri Lanka",
+        "Turkey",
+        "United Arab Emirates",
+        "United Kingdom",
+        "United States"
+    )
 
     Column(
         modifier = Modifier
@@ -38,7 +70,14 @@ fun Step1PersonalInfo(uiState: TeacherOnboardingUiState, viewModel: TeacherOnboa
 
         AppTextField(value = uiState.fullName, onValueChange = viewModel::onFullNameChange, label = "Full name")
         Spacer(Modifier.height(12.dp))
-        AppTextField(value = uiState.country, onValueChange = viewModel::onCountryChange, label = "Country")
+        CountryPickerField(
+            value = uiState.country,
+            countries = countries,
+            expanded = countryExpanded,
+            onExpandedChange = { countryExpanded = it },
+            onValueChange = viewModel::onCountryChange
+        )
+
         Spacer(Modifier.height(16.dp))
 
         Text("Languages spoken", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))

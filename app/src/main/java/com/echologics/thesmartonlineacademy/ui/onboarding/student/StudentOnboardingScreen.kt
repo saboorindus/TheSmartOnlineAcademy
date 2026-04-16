@@ -2,18 +2,23 @@ package com.echologics.thesmartonlineacademy.ui.onboarding.student
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
 import com.echologics.thesmartonlineacademy.ui.common.components.SelectableChip
 import com.echologics.thesmartonlineacademy.ui.common.components.StepProgressBar
+import androidx.compose.ui.text.input.ImeAction
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,8 +76,20 @@ private fun StudentStep1Goals(uiState: StudentOnboardingUiState, viewModel: Stud
     val subjects = listOf("Mathematics", "Physics", "Chemistry", "Biology", "English", "Urdu", "History", "Computer Science", "Economics")
     val levels = listOf("Primary", "O-Level", "A-Level", "University", "Professional")
     val goals = listOf("Exam prep", "Catch up with class", "Learn something new", "Build a work skill")
+    val nameFocus = remember { FocusRequester() }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+
+        SectionLabel("Enter full name")
+        AppTextField(
+            value = uiState.fullName,
+            onValueChange = viewModel::onFullNameChange,
+            label = "Full name",
+            isError = uiState.error != null,
+            modifier = Modifier.focusRequester(nameFocus),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+
+        )
         Text("Your learning goals", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
         Text("Help us find the right teacher for you", fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f), modifier = Modifier.padding(top = 4.dp, bottom = 20.dp))
 

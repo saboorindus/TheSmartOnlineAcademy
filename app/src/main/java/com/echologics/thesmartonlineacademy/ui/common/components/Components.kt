@@ -2,6 +2,7 @@ package com.echologics.thesmartonlineacademy.ui.common.components
 
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -62,6 +63,50 @@ fun OutlinedPrimaryButton(
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Purple)
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
+fun CountryPickerField(
+    value: String,
+    countries: List<String>,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "Country"
+) {
+    Box(modifier = modifier) {
+
+        AppTextField(
+            value = value,
+            onValueChange = {},
+            label = label,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        // full area click to open dropdown
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { onExpandedChange(true) }
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) }
+        ) {
+            countries.forEach { country ->
+                DropdownMenuItem(
+                    text = { Text(country) },
+                    onClick = {
+                        onValueChange(country)
+                        onExpandedChange(false)
+                    }
+                )
+            }
+        }
     }
 }
 
