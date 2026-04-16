@@ -1,5 +1,7 @@
 package com.echologics.thesmartonlineacademy.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -27,6 +29,7 @@ import com.echologics.thesmartonlineacademy.data.repository.AuthRepository
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
 import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
+import com.echologics.thesmartonlineacademy.data.repository.TeacherRepository
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardScreen
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginScreen
@@ -106,6 +109,7 @@ object NavArgs {
     var reviewBooking: Booking? = null
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
@@ -116,8 +120,15 @@ fun AppNavigation(
     val adminRepository = remember { AdminRepository() }
     val bookingRepository = remember { BookingRepository() }
     val reviewRepository = remember { ReviewRepository() }
-    val factory = remember { AppViewModelFactory(authRepository, messageRepository, adminRepository,
-        bookingRepository,reviewRepository) }
+    val teacherRepository = remember { TeacherRepository() }
+    val factory = remember { AppViewModelFactory(
+        authRepository,
+        messageRepository,
+        adminRepository,
+        bookingRepository,
+        reviewRepository,
+        teacherRepository
+    ) }
 
     // Track current route for bottom nav highlighting
     val currentRoute = navController.currentBackStackEntryFlow
@@ -269,6 +280,12 @@ fun AppNavigation(
                     onReview = { booking ->
                         NavArgs.reviewBooking = booking
                         navController.navigate(Screen.Review.route)
+                    },
+                    onChatClick = { convo, otherName, otherId ->
+                        NavArgs.activeConversation = convo
+                        NavArgs.chatOtherName = otherName
+                        NavArgs.chatOtherId = otherId
+                        navController.navigate(Screen.Chat.route)
                     }
                 )
             }
@@ -304,6 +321,12 @@ fun AppNavigation(
                 onBookClick = { teacher ->
                     NavArgs.selectedTeacher = teacher
                     navController.navigate(Screen.Booking.route)
+                },
+                onChatClick = { convo, otherName, otherId ->
+                    NavArgs.activeConversation = convo
+                    NavArgs.chatOtherName = otherName
+                    NavArgs.chatOtherId = otherId
+                    navController.navigate(Screen.Chat.route)
                 },
                 onBack = { navController.popBackStack() }
             )

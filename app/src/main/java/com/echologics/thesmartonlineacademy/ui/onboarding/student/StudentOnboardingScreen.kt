@@ -90,6 +90,7 @@ private fun StudentStep1Goals(uiState: StudentOnboardingUiState, viewModel: Stud
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
 
         )
+        Spacer(Modifier.height(16.dp))
         Text("Your learning goals", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
         Text("Help us find the right teacher for you", fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f), modifier = Modifier.padding(top = 4.dp, bottom = 20.dp))
 

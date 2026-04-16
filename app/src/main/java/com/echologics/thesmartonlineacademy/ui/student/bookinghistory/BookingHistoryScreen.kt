@@ -4,15 +4,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
+import com.echologics.thesmartonlineacademy.data.model.Conversation
 import com.echologics.thesmartonlineacademy.ui.common.theme.Amber
 import com.echologics.thesmartonlineacademy.ui.common.theme.AmberLight
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
@@ -25,11 +29,19 @@ import com.echologics.thesmartonlineacademy.ui.common.theme.TealLight
 fun BookingHistoryScreen(
     viewModel: BookingHistoryViewModel,
     onJoinSession: (Booking) -> Unit,
-    onReview: (Booking) -> Unit
+    onReview: (Booking) -> Unit,
+    onChatClick: (Conversation, String, String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filtered by viewModel.filteredBookings.collectAsState()
+    val context = LocalContext.current
 
+    LaunchedEffect(uiState.conversationReady) {
+        uiState.conversationReady?.let { convo ->
+            onChatClick(convo, uiState.chatOtherName, uiState.chatOtherId)
+            viewModel.onChatNavigated()
+        }
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("My sessions") }) }
@@ -94,8 +106,10 @@ fun BookingHistoryScreen(
                             StudentBookingCard(
                                 booking = booking,
                                 canReview = viewModel.canReview(booking),
+                                isChatLoading = uiState.chatLoadingBookingId == booking.id,
                                 onJoinSession = { onJoinSession(booking) },
-                                onReview = { onReview(booking) }
+                                onReview = { onReview(booking) },
+                                onMessage = { viewModel.startChat(booking) }
                             )
                         }
                     }
@@ -109,8 +123,10 @@ fun BookingHistoryScreen(
 private fun StudentBookingCard(
     booking: Booking,
     canReview: Boolean,
+    isChatLoading: Boolean,
     onJoinSession: () -> Unit,
-    onReview: () -> Unit
+    onReview: () -> Unit,
+    onMessage: () -> Unit
 ) {
     val (bgColor, borderColor, badgeColor, badgeText) = when (booking.status) {
         BookingStatus.CONFIRMED -> listOf(TealLight, Teal, Teal, "Confirmed")
@@ -198,9 +214,8 @@ private fun StudentBookingCard(
 
             // Action buttons
             val showJoin = booking.status == BookingStatus.CONFIRMED
-            val showReview = canReview
 
-            if (showJoin || showReview) {
+            if (showJoin || canReview) {
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (showJoin) {
@@ -213,7 +228,7 @@ private fun StudentBookingCard(
                             Text("Join session", fontSize = 13.sp)
                         }
                     }
-                    if (showReview) {
+                    if (canReview) {
                         OutlinedButton(
                             onClick = onReview,
                             modifier = Modifier.weight(1f),
@@ -223,6 +238,20 @@ private fun StudentBookingCard(
                         ) {
                             Text("Leave review", fontSize = 13.sp)
                         }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onMessage, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), enabled = !isChatLoading,
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
+                ) {
+                    if (isChatLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Purple, strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Message ${booking.teacherName}", fontSize = 13.sp)
                     }
                 }
             }

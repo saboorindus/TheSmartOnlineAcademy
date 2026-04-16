@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
+import com.echologics.thesmartonlineacademy.data.model.Conversation
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
+import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
 import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 enum class HistoryTab(val label: String) {
     UPCOMING("Upcoming"),
@@ -26,12 +30,17 @@ data class BookingHistoryUiState(
     val reviewedBookingIds: Set<String> = emptySet(),
     val isLoading: Boolean = true,
     val error: String? = null,
-    val selectedTab: HistoryTab = HistoryTab.UPCOMING
+    val selectedTab: HistoryTab = HistoryTab.UPCOMING,
+    val conversationReady: Conversation? = null,
+    val chatOtherName: String = "",
+    val chatOtherId: String = "",
+    val chatLoadingBookingId: String? = null
 )
 
 class BookingHistoryViewModel(
-    private val bookingRepository: BookingRepository = BookingRepository(),
-    private val reviewRepository: ReviewRepository = ReviewRepository()
+    private val bookingRepository: BookingRepository,
+    private val reviewRepository: ReviewRepository = ReviewRepository(),
+    private val messagingRepository: MessagingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BookingHistoryUiState())
@@ -72,6 +81,35 @@ class BookingHistoryViewModel(
                 !_uiState.value.reviewedBookingIds.contains(booking.id)
     }
 
+    fun startChat(booking: Booking) {
+        _uiState.value = _uiState.value.copy(chatLoadingBookingId = booking.id)
+        viewModelScope.launch {
+            val myName = getMyName()
+            val result = messagingRepository.getOrCreateConversation(
+                myId = currentUid,
+                myName = myName,
+                otherId = booking.teacherId,
+                otherName = booking.teacherName
+            )
+            result.fold(
+                onSuccess = { conversation ->
+                    _uiState.value = _uiState.value.copy(
+                        conversationReady = conversation,
+                        chatOtherName = booking.teacherName,
+                        chatOtherId = booking.teacherId,
+                        chatLoadingBookingId = null
+                    )
+                },
+                onFailure = { e ->
+                    _uiState.value = _uiState.value.copy(
+                        chatLoadingBookingId = null,
+                        error = "Could not start chat: ${e.message}"
+                    )
+                }
+            )
+        }
+    }
+
     private fun load() {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
@@ -100,5 +138,17 @@ class BookingHistoryViewModel(
                 }
             )
         }
+    }
+
+    fun onChatNavigated() {
+        _uiState.value = _uiState.value.copy(conversationReady = null)
+    }
+
+    private suspend fun getMyName(): String {
+        return try {
+            val doc = FirebaseFirestore.getInstance()
+                .collection("students").document(currentUid).get().await()
+            doc.getString("fullName") ?: "Student"
+        } catch (_: Exception) { "Student" }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.echologics.thesmartonlineacademy.data.model.Conversation
 import com.echologics.thesmartonlineacademy.data.model.Review
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
@@ -30,12 +32,21 @@ fun TeacherProfileScreen(
     viewModel: TeacherProfileViewModel,
     teacherId: String,
     onBookClick: (TeacherProfile) -> Unit,
+    onChatClick: (Conversation, String, String) -> Unit,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(teacherId) {
         viewModel.loadTeacher(teacherId)
+    }
+
+    // Navigate to chat when conversation is ready
+    LaunchedEffect(uiState.conversationReady) {
+        uiState.conversationReady?.let { convo ->
+            onChatClick(convo, uiState.chatOtherName, uiState.chatOtherId)
+            viewModel.onChatNavigated()
+        }
     }
 
     Scaffold(
@@ -55,11 +66,48 @@ fun TeacherProfileScreen(
                     shadowElevation = 8.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    PrimaryButton(
-                        text = "Book a session",
-                        onClick = { onBookClick(teacher) },
-                        modifier = Modifier.padding(16.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Message button
+                        OutlinedButton(
+                            onClick = { viewModel.startChat() },
+                            modifier = Modifier.weight(1f).height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Purple),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Purple),
+                            enabled = !uiState.isChatLoading
+                        ) {
+                            if (uiState.isChatLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = Purple,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Chat,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text("Message", style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+
+                        // Book button
+                        Button(
+                            onClick = { onBookClick(teacher) },
+                            modifier = Modifier.weight(2f).height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Purple)
+                        ) {
+                            Text("Book a session", style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
                 }
             }
         }

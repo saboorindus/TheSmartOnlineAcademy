@@ -7,6 +7,7 @@ import com.echologics.thesmartonlineacademy.data.repository.AuthRepository
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
 import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
+import com.echologics.thesmartonlineacademy.data.repository.TeacherRepository
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.SignupViewModel
@@ -31,6 +32,7 @@ class AppViewModelFactory(
     private val adminRepository: AdminRepository,
     private val bookingRepository: BookingRepository,
     private val reviewRepository: ReviewRepository,
+    private val teacherRepository: TeacherRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -61,7 +63,7 @@ class AppViewModelFactory(
                 DiscoveryViewModel() as T
 
             modelClass.isAssignableFrom(TeacherProfileViewModel::class.java) ->
-                TeacherProfileViewModel() as T
+                TeacherProfileViewModel(teacherRepository, messagingRepository) as T
 
             modelClass.isAssignableFrom(BookingViewModel::class.java) ->
                 BookingViewModel() as T
@@ -86,7 +88,7 @@ class AppViewModelFactory(
                 AdminDashboardViewModel(adminRepository,bookingRepository) as T
 
             modelClass.isAssignableFrom(BookingHistoryViewModel::class.java) ->
-                BookingHistoryViewModel(bookingRepository,reviewRepository) as T
+                BookingHistoryViewModel(bookingRepository,reviewRepository,messagingRepository) as T
 
             modelClass.isAssignableFrom(ReviewViewModel::class.java) ->
                 ReviewViewModel(reviewRepository) as T

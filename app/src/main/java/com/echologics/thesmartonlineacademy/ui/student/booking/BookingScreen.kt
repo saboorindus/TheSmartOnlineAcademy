@@ -1,5 +1,8 @@
 package com.echologics.thesmartonlineacademy.ui.student.booking
 
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,13 +16,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
 import com.echologics.thesmartonlineacademy.ui.common.components.SelectableChip
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun BookingScreen(
@@ -29,6 +37,9 @@ fun BookingScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
 
     LaunchedEffect(teacher) {
         viewModel.setTeacher(teacher)
@@ -64,18 +75,41 @@ fun BookingScreen(
                 colors = CardDefaults.cardColors(containerColor = PurpleLight)
             ) {
                 Row(
-                    modifier = Modifier.padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(teacher.fullName, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Purple)
-                        Text(teacher.subjects.take(2).joinToString(", "), fontSize = 12.sp, color = Purple.copy(alpha = 0.7f))
+
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            teacher.fullName,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            color = Purple
+                        )
+
+                        Text(
+                            teacher.subjects.take(2).joinToString(", "),
+                            fontSize = 12.sp,
+                            color = Purple.copy(alpha = 0.7f)
+                        )
                     }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(teacher.displayRate(), fontWeight = FontWeight.SemiBold, color = Purple, fontSize = 13.sp)
+
+                    Column(
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            teacher.displayRate(),
+                            fontWeight = FontWeight.SemiBold,
+                            color = Purple,
+                            fontSize = 13.sp
+                        )
                     }
                 }
+
             }
 
             Spacer(Modifier.height(20.dp))
@@ -227,20 +261,80 @@ fun BookingScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // Specific date (optional text input)
-            OutlinedTextField(
-                value = uiState.scheduledDate,
-                onValueChange = viewModel::onScheduledDateChange,
-                label = { Text("Preferred date (e.g. 15 Jan 2026)") },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Purple,
-                    focusedLabelColor = Purple,
-                    cursorColor = Purple
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showDatePicker = true }
+            ) {
+                OutlinedTextField(
+                    value = uiState.scheduledDate,
+                    onValueChange = {},
+                    label = { Text("Preferred date") },
+                    readOnly = true,
+                    enabled = false, // IMPORTANT: prevents internal focus blocking
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Purple,
+                        focusedLabelColor = Purple,
+                        cursorColor = Purple,
+                        disabledTextColor = MaterialTheme.colorScheme.onBackground
+                    )
                 )
-            )
+            }
+
+            if (showDatePicker) {
+                Dialog(onDismissRequest = { showDatePicker = false }) {
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp), // 👈 controls screen edge gap
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+
+                            Column {
+                                DatePicker(state = datePickerState)
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(onClick = { showDatePicker = false }) {
+                                        Text("Cancel")
+                                    }
+
+                                    TextButton(onClick = {
+                                        val millis = datePickerState.selectedDateMillis
+                                        if (millis != null) {
+                                            val date = Instant.ofEpochMilli(millis)
+                                                .atZone(ZoneId.systemDefault())
+                                                .toLocalDate()
+
+                                            viewModel.onScheduledDateChange(
+                                                date.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+                                            )
+                                        }
+                                        showDatePicker = false
+                                    }) {
+                                        Text("OK")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+
+
 
 //            // Price summary
 //            if (uiState.selectedSessionLength.isNotBlank()) {
