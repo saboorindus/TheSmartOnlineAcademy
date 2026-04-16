@@ -1,5 +1,6 @@
 package com.echologics.thesmartonlineacademy.data.repository
 
+import com.echologics.thesmartonlineacademy.SupabaseClient
 import com.echologics.thesmartonlineacademy.data.model.AdminQrConfig
 import com.echologics.thesmartonlineacademy.data.model.AdminStats
 import com.echologics.thesmartonlineacademy.data.model.ApprovalStatus
@@ -9,6 +10,8 @@ import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import io.github.jan.supabase.storage.storage
+
 
 class AdminRepository {
 
@@ -226,4 +229,26 @@ class AdminRepository {
             null
         }
     }
+
+
+    suspend fun uploadQrToSupabase(
+        bytes: ByteArray,
+        fileName: String = "qr/admin_qr.png"
+    ): Result<String> {
+        return try {
+            val bucket = SupabaseClient.supabase.storage.from("qr-images")
+
+            bucket.upload(fileName, bytes) {
+                upsert = true
+            }
+
+
+            val publicUrl = bucket.publicUrl(fileName)
+
+            Result.success(publicUrl)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 }

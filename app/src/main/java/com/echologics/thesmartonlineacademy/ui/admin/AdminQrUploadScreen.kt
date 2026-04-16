@@ -1,5 +1,7 @@
 package com.echologics.thesmartonlineacademy.ui.admin
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.AdminQrConfig
@@ -22,9 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
 import com.echologics.thesmartonlineacademy.ui.common.theme.TealLight
@@ -69,7 +74,34 @@ class AdminQrViewModel(
         }
     }
 
-    fun onUrlChange(v: String) { _uiState.value = _uiState.value.copy(qrImageUrl = v, isSaved = false) }
+    fun uploadQr(bytes: ByteArray) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+
+            val result = repo.uploadQrToSupabase(
+                bytes = bytes,
+                fileName = "qr/admin_qr.png"
+            )
+
+            result.fold(
+                onSuccess = { url ->
+                    _uiState.value = _uiState.value.copy(
+                        qrImageUrl = url,
+                        isSaving = false,
+                        isSaved = true
+                    )
+                },
+                onFailure = { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        error = e.message
+                    )
+                }
+            )
+        }
+    }
+
+//    fun onUrlChange(v: String) { _uiState.value = _uiState.value.copy(qrImageUrl = v, isSaved = false) }
     fun onTitleChange(v: String) { _uiState.value = _uiState.value.copy(accountTitle = v, isSaved = false) }
     fun onNumberChange(v: String) { _uiState.value = _uiState.value.copy(accountNumber = v, isSaved = false) }
 
@@ -100,6 +132,21 @@ fun AdminQrUploadSection(viewModel: AdminDashboardViewModel) {
     // QR section uses its own lightweight vm via remember
     val qrVm = remember { AdminQrViewModel() }
     val uiState by qrVm.uiState.collectAsState()
+
+    val context = LocalContext.current
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bytes = inputStream?.readBytes()
+
+            if (bytes != null) {
+                qrVm.uploadQr(bytes)
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -132,26 +179,31 @@ fun AdminQrUploadSection(viewModel: AdminDashboardViewModel) {
             contentAlignment = Alignment.Center
         ) {
             if (uiState.qrImageUrl.isNotBlank()) {
-                // In production use: AsyncImage(model = uiState.qrImageUrl, ...)
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("QR loaded", fontSize = 12.sp, color = Teal)
-                    Text(uiState.qrImageUrl.take(30) + "...", fontSize = 10.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
-                }
+
+                AsyncImage(
+                    model = uiState.qrImageUrl,
+                    contentDescription = "Payment QR",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("No QR set", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
-                    Text("Paste image URL below", fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f))
+                    Text("Upload QR image", fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f))
                 }
             }
+
         }
 
         Spacer(Modifier.height(24.dp))
 
-        // QR Image URL
-        AppTextField(
-            value = uiState.qrImageUrl,
-            onValueChange = qrVm::onUrlChange,
-            label = "QR image URL (Firebase Storage or direct link)"
+        PrimaryButton(
+            text = "Upload QR Image",
+            onClick = {
+                imagePicker.launch("image/*")
+            },
+            isLoading = uiState.isSaving
         )
 
         Spacer(Modifier.height(12.dp))

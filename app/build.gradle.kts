@@ -101,6 +101,12 @@ dependencies {
     implementation(libs.full.sdk)
     implementation(libs.androidx.splashscreen)
     implementation(libs.gson)
+    implementation(libs.supabase.kt)
+    implementation(libs.ktor.client.android)
+    implementation(libs.storage.kt)
+    implementation(libs.coil.compose)
+
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
@@ -113,7 +114,10 @@ fun PaymentScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // QR grid placeholder (real app: use coil + Firebase Storage URL)
-                    QrPlaceholder()
+                    QrImage(
+                        qrUrl = "https://vilzjwakvylaihhwitwi.supabase.co/storage/v1/object/public/qr-images/qr/admin_qr.png"
+                    )
+
                     Spacer(Modifier.height(10.dp))
                     Text(
                         "QR Code",
@@ -210,28 +214,13 @@ private fun SummaryRow(label: String, value: String) {
 }
 
 @Composable
-private fun QrPlaceholder() {
-    // Simple grid to visually represent a QR code placeholder
-    // In production: AsyncImage(model = qrUrl, ...)
-    val size = 8
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        repeat(size) { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                repeat(size) { col ->
-                    val isDark = (row + col) % 2 == 0 ||
-                            (row < 2 && col < 2) ||
-                            (row < 2 && col > 5) ||
-                            (row > 5 && col < 2)
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .background(
-                                if (isDark) Color(0xFF2C2C2A) else Color.Transparent,
-                                RoundedCornerShape(1.dp)
-                            )
-                    )
-                }
-            }
-        }
-    }
+private fun QrImage(qrUrl: String) {
+    AsyncImage(
+        model = qrUrl,
+        contentDescription = "Payment QR Code",
+        modifier = Modifier
+            .size(180.dp)
+            .clip(RoundedCornerShape(12.dp)),
+        contentScale = androidx.compose.ui.layout.ContentScale.Fit
+    )
 }
