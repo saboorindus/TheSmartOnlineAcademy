@@ -66,6 +66,7 @@ import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsS
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditScreen
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditViewModel
+import com.echologics.thesmartonlineacademy.ui.terms.TermsScreen
 import com.echologics.thesmartonlineacademy.utils.AppViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 
@@ -76,6 +77,9 @@ sealed class Screen(val route: String) {
     }
     object Signup : Screen("signup/{role}") {
         fun createRoute(role: String) = "signup/$role"
+    }
+    object Terms : Screen("terms/{role}") {
+        fun createRoute(role: String) = "terms/$role"
     }
     object TeacherOnboarding : Screen("teacher_onboarding")
     object StudentOnboarding : Screen("student_onboarding")
@@ -162,7 +166,16 @@ fun AppNavigation(
                     }
                     navController.navigate(dest) { popUpTo(0) }
                 },
-                onSignupClick = { navController.navigate(Screen.Signup.createRoute(role)) }
+                onSignupClick = { navController.navigate(Screen.Terms.createRoute(role)) }
+            )
+        }
+
+        composable(Screen.Terms.route) { backStack ->
+            val role = backStack.arguments?.getString("role") ?: "student"
+            TermsScreen(
+                role = role,
+                onAccepted = { navController.navigate(Screen.Signup.createRoute(role)) },
+                onBack = { navController.popBackStack() }
             )
         }
 

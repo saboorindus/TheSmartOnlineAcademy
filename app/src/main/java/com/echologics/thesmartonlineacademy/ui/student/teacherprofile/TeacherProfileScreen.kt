@@ -19,12 +19,12 @@ import androidx.compose.ui.unit.sp
 import com.echologics.thesmartonlineacademy.data.model.Conversation
 import com.echologics.thesmartonlineacademy.data.model.Review
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
-import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
 import com.echologics.thesmartonlineacademy.ui.common.theme.Amber
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
 import com.echologics.thesmartonlineacademy.ui.common.theme.Teal
 import com.echologics.thesmartonlineacademy.ui.common.theme.TealLight
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,7 +101,7 @@ fun TeacherProfileScreen(
                         // Book button
                         Button(
                             onClick = { onBookClick(teacher) },
-                            modifier = Modifier.weight(2f).height(52.dp),
+                            modifier = Modifier.weight(1f).height(52.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Purple)
                         ) {
@@ -185,7 +185,7 @@ private fun TeacherProfileContent(
                 ) {
                     if (averageRating > 0f) {
                         Icon(Icons.Default.Star, contentDescription = null, tint = Amber, modifier = Modifier.size(16.dp))
-                        Text(String.format("%.1f", averageRating), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(String.format(Locale.US, "%.1f", averageRating), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         Text("(${reviews.size} reviews)", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
                     } else {
                         Text("No reviews yet", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
