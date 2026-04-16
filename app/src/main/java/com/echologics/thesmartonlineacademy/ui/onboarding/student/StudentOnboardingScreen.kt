@@ -120,7 +120,7 @@ private fun StudentStep1Goals(uiState: StudentOnboardingUiState, viewModel: Stud
         PrimaryButton(
             text = "Continue",
             onClick = viewModel::nextStep,
-            enabled = uiState.subjects.isNotEmpty() && uiState.level.isNotBlank() && uiState.goal.isNotBlank()
+            enabled = uiState.subjects.isNotEmpty() && uiState.level.isNotBlank() && uiState.goal.isNotBlank() && uiState.fullName.isNotBlank()
         )
         Spacer(Modifier.height(24.dp))
     }

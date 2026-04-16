@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class SignupUiState(
-    val fullName: String = "",
     val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
@@ -25,7 +24,6 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
     private val _uiState = MutableStateFlow(SignupUiState())
     val uiState: StateFlow<SignupUiState> = _uiState.asStateFlow()
 
-    fun onFullNameChange(v: String) { _uiState.value = _uiState.value.copy(fullName = v, error = null) }
     fun onEmailChange(v: String) { _uiState.value = _uiState.value.copy(email = v, error = null) }
     fun onPasswordChange(v: String) { _uiState.value = _uiState.value.copy(password = v, error = null) }
     fun onConfirmPasswordChange(v: String) { _uiState.value = _uiState.value.copy(confirmPassword = v, error = null) }
@@ -33,7 +31,6 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
     fun signup(role: String) {
         val state = _uiState.value
         when {
-            state.fullName.isBlank() -> { _uiState.value = state.copy(error = "Full name is required"); return }
             state.email.isBlank() -> { _uiState.value = state.copy(error = "Email is required"); return }
             state.password.length < 6 -> { _uiState.value = state.copy(error = "Password must be at least 6 characters"); return }
             state.password != state.confirmPassword -> { _uiState.value = state.copy(error = "Passwords do not match"); return }
