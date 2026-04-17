@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -34,6 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -121,33 +124,64 @@ fun PaymentScreen(
                 modifier = Modifier.padding(top = 2.dp, bottom = 14.dp)
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
-                contentAlignment = Alignment.Center
+            // QR + payment details card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // QR grid placeholder (real app: use coil + Firebase Storage URL)
-                    QrImage(
-                        qrUrl = "https://vilzjwakvylaihhwitwi.supabase.co/storage/v1/object/public/qr-images/qr/admin_qr.png"
-                    )
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // QR image — left side, fixed size
+                    Box(
+                        modifier = Modifier
+                            .size(130.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(0.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        QrImage(qrUrl = "https://vilzjwakvylaihhwitwi.supabase.co/storage/v1/object/public/qr-images/qr/admin_qr.png")
+                    }
 
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "QR Code",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                    )
-                    Text(
-                        "Send exactly ${booking.totalAmount}",
-                        fontSize = 12.sp,
-                        color = Purple,
-                        fontWeight = FontWeight.Medium
-                    )
+                    // Right side info
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
+                    ) {
+                        Text("Send exactly", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                        Text(
+                            booking.totalAmount,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Purple,
+                            lineHeight = 28.sp
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        HorizontalDivider(thickness = 0.5.dp)
+                        Spacer(Modifier.height(10.dp))
+
+                        Text("Account name", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                        Text(
+                            "Smart Academy Admin",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Text("Accepts", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                        Spacer(Modifier.height(4.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            PaymentBadge("EasyPaisa", Teal, TealLight)
+                            PaymentBadge("JazzCash", Purple, PurpleLight)
+                        }
+                    }
                 }
             }
 
@@ -232,13 +266,26 @@ private fun SummaryRow(label: String, value: String) {
 }
 
 @Composable
+private fun PaymentBadge(label: String, textColor: Color, bgColor: Color) {
+    Surface(shape = RoundedCornerShape(4.dp), color = bgColor) {
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = textColor,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+        )
+    }
+}
+
+@Composable
 private fun QrImage(qrUrl: String) {
     AsyncImage(
         model = qrUrl,
         contentDescription = "Payment QR Code",
         modifier = Modifier
-            .size(180.dp)
-            .clip(RoundedCornerShape(12.dp)),
-        contentScale = androidx.compose.ui.layout.ContentScale.Fit
+            .size(110.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        contentScale = ContentScale.Fit
     )
 }

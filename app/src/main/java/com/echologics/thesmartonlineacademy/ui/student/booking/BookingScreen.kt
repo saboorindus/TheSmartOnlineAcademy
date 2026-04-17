@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +42,8 @@ fun BookingScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
     val todayMillis = System.currentTimeMillis()
+    var slotTakenError by remember { mutableStateOf<String?>(null) }
+
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = todayMillis
     )
@@ -50,8 +53,9 @@ fun BookingScreen(
         viewModel.setTeacher(teacher)
     }
 
-    LaunchedEffect(uiState.createdBooking) {
+    LaunchedEffect(uiState.createdBooking, uiState.error) {
         uiState.createdBooking?.let { onBookingCreated(it) }
+        uiState.error?.let { slotTakenError = it }
     }
 
     Scaffold(
@@ -344,46 +348,6 @@ fun BookingScreen(
 
             }
 
-
-
-//            // Price summary
-//            if (uiState.selectedSessionLength.isNotBlank()) {
-//                Spacer(Modifier.height(20.dp))
-//                Card(
-//                    modifier = Modifier.fillMaxWidth(),
-//                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-//                    shape = RoundedCornerShape(10.dp)
-//                ) {
-//                    Row(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(14.dp),
-//                        horizontalArrangement = Arrangement.SpaceBetween
-//                    ) {
-//                        Column {
-//                            Text("Session total", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
-//                            Text(
-//                                "${uiState.selectedSessionLength} · ${uiState.selectedSubject}",
-//                                fontSize = 12.sp,
-//                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-//                            )
-//                        }
-//                        Text(
-//                            text = computeTotal(teacher.hourlyRate, uiState.selectedSessionLength),
-//                            fontWeight = FontWeight.SemiBold,
-//                            fontSize = 18.sp,
-//                            color = Purple
-//                        )
-//                    }
-//                }
-//            }
-
-
-            if (uiState.error != null) {
-                Spacer(Modifier.height(12.dp))
-                Text(uiState.error!!, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-            }
-
             Spacer(Modifier.height(24.dp))
 
             PrimaryButton(
@@ -394,6 +358,34 @@ fun BookingScreen(
             )
 
             Spacer(Modifier.height(24.dp))
+        }
+
+        // Slot taken error dialog
+        slotTakenError?.let { message ->
+            AlertDialog(
+                onDismissRequest = { slotTakenError = null },
+                title = {
+                    Text("Slot unavailable", fontWeight = FontWeight.SemiBold)
+                },
+                text = {
+                    Text(message, fontSize = 14.sp, lineHeight = 20.sp)
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { slotTakenError = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = Purple)
+                    ) {
+                        Text("Choose another slot")
+                    }
+                },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.EventBusy,
+                        contentDescription = null,
+                        tint = Purple
+                    )
+                }
+            )
         }
     }
 }
