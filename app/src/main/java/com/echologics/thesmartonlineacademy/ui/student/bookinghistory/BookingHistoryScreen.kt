@@ -1,5 +1,6 @@
 package com.echologics.thesmartonlineacademy.ui.student.bookinghistory
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,7 +35,7 @@ fun BookingHistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filtered by viewModel.filteredBookings.collectAsState()
-    val context = LocalContext.current
+    LocalContext.current
 
     LaunchedEffect(uiState.conversationReady) {
         uiState.conversationReady?.let { convo ->
@@ -152,7 +153,7 @@ private fun StudentBookingCard(
         colors = CardDefaults.cardColors(
             containerColor = bgColor as androidx.compose.ui.graphics.Color
         ),
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             0.5.dp,
             borderColor as androidx.compose.ui.graphics.Color
         )
@@ -243,7 +244,7 @@ private fun StudentBookingCard(
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = onMessage, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), enabled = !isChatLoading,
-                    border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
                 ) {
                     if (isChatLoading) {

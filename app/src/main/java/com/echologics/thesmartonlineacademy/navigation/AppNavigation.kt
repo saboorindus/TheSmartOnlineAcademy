@@ -356,7 +356,9 @@ fun AppNavigation(
                 teacher = teacher,
                 onBookingCreated = { booking ->
                     NavArgs.createdBooking = booking
-                    navController.navigate(Screen.Payment.route)
+                    navController.navigate(Screen.Payment.route) {
+                        popUpTo(Screen.Booking.route) { inclusive = true }
+                    }
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -376,7 +378,10 @@ fun AppNavigation(
                         popUpTo(Screen.StudentHome.route)
                     }
                 },
-                onBack = { navController.popBackStack() }
+                onBack = {
+                    NavArgs.createdBooking = null
+                    navController.popBackStack()
+                }
             )
         }
 
