@@ -95,7 +95,8 @@ class BookingViewModel(
         return s.selectedDay.isNotBlank() &&
                 s.selectedTimeSlot.isNotBlank() &&
                 s.selectedSubject.isNotBlank() &&
-                s.durationMinutes >= 10
+                s.durationMinutes >= 10 &&
+                s.scheduledDate.isNotBlank()
     }
 
     fun confirmBooking() {
@@ -144,7 +145,7 @@ class BookingViewModel(
             val doc = FirebaseFirestore.getInstance()
                 .collection("students").document(uid).get().await()
             doc.getString("fullName") ?: "Student"
-        } catch (e: Exception) { "Student" }
+        } catch (_: Exception) { "Student" }
     }
 
 //    private fun calculateTotal(hourlyRate: String, sessionLength: String): String {

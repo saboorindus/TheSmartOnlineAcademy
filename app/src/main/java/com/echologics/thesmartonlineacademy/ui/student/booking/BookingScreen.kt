@@ -3,6 +3,7 @@ package com.echologics.thesmartonlineacademy.ui.student.booking
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,7 +40,10 @@ fun BookingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val todayMillis = System.currentTimeMillis()
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = todayMillis
+    )
 
 
     LaunchedEffect(teacher) {
@@ -261,17 +266,22 @@ fun BookingScreen(
 
             Spacer(Modifier.height(20.dp))
 
+            val shape = RoundedCornerShape(12.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showDatePicker = true }
+                    .clip(shape)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = true)   // 👈 key fix
+                    ) { showDatePicker = true }
             ) {
                 OutlinedTextField(
                     value = uiState.scheduledDate,
                     onValueChange = {},
                     label = { Text("Preferred date") },
                     readOnly = true,
-                    enabled = false, // IMPORTANT: prevents internal focus blocking
+                    enabled = false,
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),

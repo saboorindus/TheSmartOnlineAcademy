@@ -223,10 +223,16 @@ private fun TeacherProfileContent(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                InfoPill(label = "Rate", value = teacher.ratePerTenMin.toString())
+                PricePill(
+                    currency = teacher.currency,
+                    amount = teacher.ratePerTenMin.toString(),
+                    duration = "/10 min"
+                )
+
+
 //                InfoPill(label = "Sessions", value = teacher.sessionLengths.joinToString(", "))
                 if (teacher.trialSessionEnabled) {
-                    InfoPill(label = "Trial", value = teacher.trialRate)
+                    HorizontalInfoPill(label = "Trial", value = teacher.trialRate)
                 }
             }
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
@@ -273,13 +279,27 @@ private fun TeacherProfileContent(
         // Teaching styles
         item {
             ProfileSection(title = "Teaching style") {
-                Text(
-                    text = teacher.teachingStyles.joinToString(", "),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f)
-                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    teacher.teachingStyles.forEach { style ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Text(
+                                text = style,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
+
 
         // Availability
         item {
@@ -336,6 +356,55 @@ private fun InfoPill(label: String, value: String) {
         Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
     }
 }
+
+@Composable
+private fun HorizontalInfoPill(label: String, value: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp) // 👈 important
+    ) {
+        Text(
+            label,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+
+        Text(
+            value,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            color = Purple
+        )
+    }
+}
+
+@Composable
+fun PricePill(currency: String, amount: String, duration: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            currency,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+        Text(
+            amount,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+            color = Purple
+        )
+        Text(
+            duration,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+    }
+}
+
+
+
 
 @Composable
 private fun ReviewCard(review: Review) {

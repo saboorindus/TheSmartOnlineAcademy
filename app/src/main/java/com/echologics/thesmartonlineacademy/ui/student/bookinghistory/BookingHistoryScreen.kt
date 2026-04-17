@@ -1,16 +1,43 @@
 package com.echologics.thesmartonlineacademy.ui.student.bookinghistory
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,11 +57,11 @@ fun BookingHistoryScreen(
     viewModel: BookingHistoryViewModel,
     onJoinSession: (Booking) -> Unit,
     onReview: (Booking) -> Unit,
-    onChatClick: (Conversation, String, String) -> Unit
+    onChatClick: (Conversation, String, String) -> Unit,
+    onConfirmPayment: (Booking) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filtered by viewModel.filteredBookings.collectAsState()
-    val context = LocalContext.current
 
     LaunchedEffect(uiState.conversationReady) {
         uiState.conversationReady?.let { convo ->
@@ -109,7 +136,8 @@ fun BookingHistoryScreen(
                                 isChatLoading = uiState.chatLoadingBookingId == booking.id,
                                 onJoinSession = { onJoinSession(booking) },
                                 onReview = { onReview(booking) },
-                                onMessage = { viewModel.startChat(booking) }
+                                onMessage = { viewModel.startChat(booking) },
+                                onConfirmPayment = { onConfirmPayment(booking) }
                             )
                         }
                     }
@@ -126,7 +154,9 @@ private fun StudentBookingCard(
     isChatLoading: Boolean,
     onJoinSession: () -> Unit,
     onReview: () -> Unit,
-    onMessage: () -> Unit
+    onMessage: () -> Unit,
+    onConfirmPayment: () -> Unit
+
 ) {
     val (bgColor, borderColor, badgeColor, badgeText) = when (booking.status) {
         BookingStatus.CONFIRMED -> listOf(TealLight, Teal, Teal, "Confirmed")
@@ -203,14 +233,30 @@ private fun StudentBookingCard(
             }
 
             // Payment pending instructions
+            // Payment pending instructions + action
             if (booking.status == BookingStatus.PENDING_PAYMENT) {
                 Spacer(Modifier.height(10.dp))
+
                 Text(
                     "Please complete payment to confirm this session.",
                     fontSize = 12.sp,
                     color = Purple.copy(alpha = 0.75f)
                 )
+
+                Spacer(Modifier.height(10.dp))
+
+                Button(
+                    onClick = onConfirmPayment, // 👈 add this callback
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Purple
+                    )
+                ) {
+                    Text("Confirm payment", fontSize = 13.sp)
+                }
             }
+
 
             // Action buttons
             val showJoin = booking.status == BookingStatus.CONFIRMED

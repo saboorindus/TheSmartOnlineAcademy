@@ -299,6 +299,10 @@ fun AppNavigation(
                         NavArgs.chatOtherName = otherName
                         NavArgs.chatOtherId = otherId
                         navController.navigate(Screen.Chat.route)
+                    },
+                    onConfirmPayment = { booking ->          // ← add this
+                        NavArgs.createdBooking = booking
+                        navController.navigate(Screen.Payment.route)
                     }
                 )
             }
@@ -356,7 +360,9 @@ fun AppNavigation(
                 teacher = teacher,
                 onBookingCreated = { booking ->
                     NavArgs.createdBooking = booking
-                    navController.navigate(Screen.Payment.route)
+                    navController.navigate(Screen.Payment.route) {
+                        popUpTo(Screen.Booking.route) { inclusive = true } // ← add this
+                    }
                 },
                 onBack = { navController.popBackStack() }
             )
