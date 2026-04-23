@@ -35,8 +35,6 @@ import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginScreen
 import com.echologics.thesmartonlineacademy.ui.auth.LoginViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.RoleSelectScreen
-import com.echologics.thesmartonlineacademy.ui.auth.SignupScreen
-import com.echologics.thesmartonlineacademy.ui.auth.SignupViewModel
 import com.echologics.thesmartonlineacademy.ui.common.components.StudentBottomNav
 import com.echologics.thesmartonlineacademy.ui.common.components.TeacherBottomNav
 import com.echologics.thesmartonlineacademy.ui.messaging.ChatScreen
@@ -166,7 +164,6 @@ fun AppNavigation(
                     }
                     navController.navigate(dest) { popUpTo(0) }
                 },
-                onSignupClick = { navController.navigate(Screen.Terms.createRoute(role)) }
             )
         }
 
@@ -176,20 +173,6 @@ fun AppNavigation(
                 role = role,
                 onAccepted = { navController.navigate(Screen.Signup.createRoute(role)) },
                 onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(Screen.Signup.route) { backStack ->
-            val role = backStack.arguments?.getString("role") ?: "student"
-            val vm: SignupViewModel = viewModel(factory = factory)
-            SignupScreen(
-                viewModel = vm,
-                role = role,
-                onSignupSuccess = {
-                    val dest = if (role == "teacher") Screen.TeacherOnboarding.route else Screen.StudentOnboarding.route
-                    navController.navigate(dest) { popUpTo(0) }
-                },
-                onLoginClick = { navController.popBackStack() }
             )
         }
 

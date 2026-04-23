@@ -10,7 +10,6 @@ import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
 import com.echologics.thesmartonlineacademy.data.repository.TeacherRepository
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginViewModel
-import com.echologics.thesmartonlineacademy.ui.auth.SignupViewModel
 import com.echologics.thesmartonlineacademy.ui.messaging.ChatViewModel
 import com.echologics.thesmartonlineacademy.ui.messaging.ConversationListViewModel
 import com.echologics.thesmartonlineacademy.ui.onboarding.student.StudentOnboardingViewModel
@@ -43,9 +42,6 @@ class AppViewModelFactory(
             // Auth
             modelClass.isAssignableFrom(LoginViewModel::class.java) ->
                 LoginViewModel(authRepository) as T
-
-            modelClass.isAssignableFrom(SignupViewModel::class.java) ->
-                SignupViewModel(authRepository) as T
 
             // Onboarding
             modelClass.isAssignableFrom(TeacherOnboardingViewModel::class.java) ->

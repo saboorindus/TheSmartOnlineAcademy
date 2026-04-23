@@ -6,6 +6,7 @@ import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.echologics.thesmartonlineacademy.data.model.UserRole
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -16,6 +17,41 @@ class AuthRepository {
 
     val currentUserId: String? get() = auth.currentUser?.uid
     val isLoggedIn: Boolean get() = auth.currentUser != null
+
+    suspend fun signInWithGoogle(idToken: String, role: UserRole): Result<User> {
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val result = auth.signInWithCredential(credential).await()
+            val firebaseUser = result.user
+                ?: return Result.failure(Exception("Google sign-in failed"))
+
+            val uid = firebaseUser.uid
+            val email = firebaseUser.email ?: ""
+
+            // Check if this user already exists in Firestore
+            val existingDoc = db.collection("users").document(uid).get().await()
+
+            val user = if (existingDoc.exists()) {
+                // Returning user — read their existing role, don't overwrite it
+                existingDoc.toObject(User::class.java)
+                    ?: User(uid = uid, email = email, role = role)
+            } else {
+                // First time — create user document with the selected role
+                val newUser = User(
+                    uid = uid,
+                    email = email,
+                    role = role,
+                    onboardingComplete = false
+                )
+                db.collection("users").document(uid).set(newUser).await()
+                newUser
+            }
+
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     suspend fun signUp(email: String, password: String, role: UserRole): Result<User> {
         return try {
