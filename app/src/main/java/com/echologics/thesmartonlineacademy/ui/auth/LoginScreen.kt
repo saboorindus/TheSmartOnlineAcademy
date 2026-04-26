@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -147,21 +148,12 @@ fun LoginScreen(
     }
 }
 
-// Simple Google G composed of 4 colored boxes — no SVG or image file needed
 @Composable
-private fun GoogleLogo() {
-    Box(modifier = Modifier.size(20.dp)) {
-        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-            val s = size.width
-            val h = s / 2f
-            // Blue (top-left)
-            drawRect(color = Color(0xFF4285F4), topLeft = androidx.compose.ui.geometry.Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(h, h))
-            // Red (top-right)
-            drawRect(color = Color(0xFFEA4335), topLeft = androidx.compose.ui.geometry.Offset(h, 0f), size = androidx.compose.ui.geometry.Size(h, h))
-            // Yellow (bottom-left)
-            drawRect(color = Color(0xFFFBBC05), topLeft = androidx.compose.ui.geometry.Offset(0f, h), size = androidx.compose.ui.geometry.Size(h, h))
-            // Green (bottom-right)
-            drawRect(color = Color(0xFF34A853), topLeft = androidx.compose.ui.geometry.Offset(h, h), size = androidx.compose.ui.geometry.Size(h, h))
-        }
-    }
+fun GoogleLogo() {
+    Icon(
+        painter = painterResource(id = R.drawable.ic_google_logo),
+        contentDescription = "Google Logo",
+        tint = Color.Unspecified, // IMPORTANT: keeps original colors
+        modifier = Modifier.size(20.dp)
+    )
 }
