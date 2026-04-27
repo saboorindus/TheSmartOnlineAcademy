@@ -15,14 +15,20 @@ import io.agora.rtc2.RtcEngine
 import io.agora.rtc2.RtcEngineConfig
 import io.agora.rtc2.video.VideoCanvas
 import io.agora.rtc2.video.VideoEncoderConfiguration
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
-// Replace with your Agora App ID from console.agora.io
-private const val AGORA_APP_ID = "2df6491956aa4d07bebbc9e430cddcfc"
+private const val AGORA_APP_ID = "0bcd1a1d17b44aeeba473215676773fa"
+private const val SUPABASE_FUNCTION_URL =
+    "https://vilzjwakvylaihhwitwi.supabase.co/functions/v1/generate-agora-token"
+private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpbHpqd2FrdnlsYWloaHdpdHdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDc5MjMsImV4cCI6MjA5MTkyMzkyM30.UmsdUX-f7zAHo5z431eDXAOpWU7fS4A4nsuZYXagrx4" // ← paste your anon key here
 
 data class SessionUiState(
     val booking: Booking? = null,
@@ -94,17 +100,57 @@ class SessionViewModel(
         }
 
         override fun onError(err: Int) {
-            _uiState.value = _uiState.value.copy(
-                error = "Agora error code: $err"
-            )
+            _uiState.value = _uiState.value.copy(error = "Agora error code: $err")
         }
     }
+
+    // ── Token fetch ───────────────────────────────────────────────────────────
+
+    private suspend fun fetchAgoraToken(channelName: String, uid: Int): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                val url = URL(SUPABASE_FUNCTION_URL)
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    setRequestProperty("Content-Type", "application/json")
+                    setRequestProperty("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                    setRequestProperty("apikey", SUPABASE_ANON_KEY)
+                    doOutput = true
+                    connectTimeout = 10_000
+                    readTimeout = 10_000
+                }
+
+                val body = JSONObject().apply {
+                    put("channelName", channelName)
+                    put("uid", uid)
+                }.toString()
+
+                conn.outputStream.use { it.write(body.toByteArray()) }
+
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                conn.disconnect()
+
+                JSONObject(response).getString("token")
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+    // ── Session init ──────────────────────────────────────────────────────────
 
     fun initSession(context: Context, booking: Booking, role: SessionRole) {
         _uiState.value = _uiState.value.copy(booking = booking, role = role)
         initAgoraEngine(context)
-        joinChannel(booking.agoraChannelName)
-        listenToChat(booking.id)
+        viewModelScope.launch {
+            val uid = currentUid.hashCode() and 0x7FFFFFFF // convert uid string to positive int
+            val token = fetchAgoraToken(booking.agoraChannelName, uid)
+            if (token == null) {
+                _uiState.value = _uiState.value.copy(error = "Failed to fetch token. Check your connection.")
+                return@launch
+            }
+            joinChannel(booking.agoraChannelName, uid, token)
+            listenToChat(booking.id)
+        }
     }
 
     private fun initAgoraEngine(context: Context) {
@@ -131,7 +177,7 @@ class SessionViewModel(
         }
     }
 
-    private fun joinChannel(channelName: String) {
+    private fun joinChannel(channelName: String, uid: Int, token: String) {
         val options = ChannelMediaOptions().apply {
             channelProfile = Constants.CHANNEL_PROFILE_COMMUNICATION
             clientRoleType = Constants.CLIENT_ROLE_BROADCASTER
@@ -140,8 +186,7 @@ class SessionViewModel(
             autoSubscribeAudio = true
             autoSubscribeVideo = true
         }
-        // Token is null for testing. In production, fetch token from your backend.
-        rtcEngine?.joinChannel(null, channelName, 0, options)
+        rtcEngine?.joinChannel(token, channelName, uid, options)
     }
 
     // ── Video controls ────────────────────────────────────────────────────────

@@ -38,7 +38,6 @@ object NotificationHelper {
         ).apply {
             description = "All app notifications"
             enableLights(true)
-            enableVibration(true)
             setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes) // 👈 sound
         }
 
