@@ -10,7 +10,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.runtime.CompositionLocalProvider
 
 val Purple = Color(0xFF534AB7)
 val PurpleLight = Color(0xFFEEEDFE)
@@ -26,9 +29,14 @@ val White = Color(0xFFFFFFFF)
 val Black = Color(0xFF2C2C2A)
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = PurpleDark,
+    secondary = Teal,
+    background = Black,
+    surface = Black,
+    onPrimary = White,
+    onBackground = White,
+    onSurface = White,
+    error = ErrorRed
 )
 
 private val LightColors = lightColorScheme(
@@ -50,23 +58,50 @@ private val LightColors = lightColorScheme(
 @Composable
 fun TheSmartOnlineAcademyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+
+    val context = LocalContext.current
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (darkTheme) dynamicDarkColorScheme(context)
+            else dynamicLightColorScheme(context)
         }
 
         darkTheme -> DarkColorScheme
         else -> LightColors
     }
 
-    MaterialTheme(
-        colorScheme = LightColors,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(
+        // 🔥 This fixes edge-to-edge globally for ALL Scaffolds
+        androidx.compose.material3.LocalContentColor provides colorScheme.onBackground
+    ) {
+        MaterialTheme(
+            colorScheme = LightColors,
+            typography = Typography,
+            content = content
+        )
+    }
 }
+
+/**
+ * Optional but recommended: use this Scaffold everywhere instead of Material Scaffold
+ */
+//@Composable
+//fun AppScaffold(
+//    modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
+//    topBar: @Composable () -> Unit = {},
+//    bottomBar: @Composable () -> Unit = {},
+//    content: @Composable (androidx.compose.ui.Modifier) -> Unit
+//) {
+//    androidx.compose.material3.Scaffold(
+//        modifier = modifier,
+//        topBar = topBar,
+//        bottomBar = bottomBar,
+//        contentWindowInsets = WindowInsets.systemBars,
+//    ) { padding ->
+//        content(androidx.compose.ui.Modifier.padding(padding))
+//    }
+//}
