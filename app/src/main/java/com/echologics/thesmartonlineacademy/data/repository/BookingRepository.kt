@@ -1,17 +1,28 @@
 package com.echologics.thesmartonlineacademy.data.repository
 
 
+import android.content.Context
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
+import com.echologics.thesmartonlineacademy.utils.OneSignalHelper
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
-class BookingRepository {
+class BookingRepository(private val context: Context) {
 
     private val db = FirebaseFirestore.getInstance()
     private val bookingsCol = db.collection("bookings")
+    private val authRepository = AuthRepository()
+
+    private val oneSignalAppId: String by lazy {
+        context.getString(context.resources.getIdentifier("onesignal_app_id", "string", context.packageName))
+    }
+
+    private val oneSignalRestKey: String by lazy {
+        context.getString(context.resources.getIdentifier("onesignal_rest_api_key", "string", context.packageName))
+    }
 
     suspend fun isSlotAvailable(
         teacherId: String,
@@ -33,7 +44,7 @@ class BookingRepository {
                 .get().await()
             snapshot.isEmpty  // true = slot is free
         } catch (e: Exception) {
-            false // fail safe: treat as unavailable on error
+            false // fail-safe: treat as unavailable on error
         }
     }
 
@@ -58,6 +69,22 @@ class BookingRepository {
                 status = BookingStatus.PENDING_PAYMENT
             )
             bookingsCol.document(id).set(newBooking).await()
+
+            // Push to teacher instantly
+            val teacherPlayerId = authRepository.getPlayerIdForUser(booking.teacherId)
+            val (title, body) = OneSignalHelper.bookingRequestPayload(
+                studentName = booking.studentName,
+                subject = booking.subject
+            )
+            OneSignalHelper.sendToPlayer(
+                restApiKey = oneSignalRestKey,
+                appId = oneSignalAppId,
+                playerId = teacherPlayerId,
+                title = title,
+                body = body,
+                data = mapOf("type" to "booking_request", "bookingId" to id)
+            )
+
             Result.success(newBooking)
         } catch (e: Exception) {
             Result.failure(e)
@@ -68,7 +95,8 @@ class BookingRepository {
     suspend fun submitPayment(
         bookingId: String,
         transactionId: String,
-        senderName: String
+        senderName: String,
+        amount: String
     ): Result<Unit> {
         return try {
             bookingsCol.document(bookingId).update(
@@ -79,6 +107,25 @@ class BookingRepository {
                     "paymentSubmittedAt" to System.currentTimeMillis()
                 )
             ).await()
+
+            // Get teacher ID from the booking to look up their player ID
+            val bookingDoc = bookingsCol.document(bookingId).get().await()
+            val teacherId = bookingDoc.getString("teacherId") ?: ""
+
+            val teacherPlayerId = authRepository.getPlayerIdForUser(teacherId)
+            val (title, body) = OneSignalHelper.paymentSubmittedPayload(
+                studentName = senderName,
+                amount = amount
+            )
+            OneSignalHelper.sendToPlayer(
+                restApiKey = oneSignalRestKey,
+                appId = oneSignalAppId,
+                playerId = teacherPlayerId,
+                title = title,
+                body = body,
+                data = mapOf("type" to "payment_submitted", "bookingId" to bookingId)
+            )
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -86,7 +133,11 @@ class BookingRepository {
     }
 
     // Teacher confirms payment received
-    suspend fun confirmPayment(bookingId: String): Result<Unit> {
+    suspend fun confirmPayment(
+        bookingId: String,
+        teacherName: String,
+        subject: String
+    ): Result<Unit> {
         return try {
             bookingsCol.document(bookingId).update(
                 mapOf(
@@ -94,6 +145,25 @@ class BookingRepository {
                     "paymentConfirmedAt" to System.currentTimeMillis()
                 )
             ).await()
+
+            // Get student ID from the booking
+            val bookingDoc = bookingsCol.document(bookingId).get().await()
+            val studentId = bookingDoc.getString("studentId") ?: ""
+
+            val studentPlayerId = authRepository.getPlayerIdForUser(studentId)
+            val (title, body) = OneSignalHelper.paymentConfirmedPayload(
+                teacherName = teacherName,
+                subject = subject
+            )
+            OneSignalHelper.sendToPlayer(
+                restApiKey = oneSignalRestKey,
+                appId = oneSignalAppId,
+                playerId = studentPlayerId,
+                title = title,
+                body = body,
+                data = mapOf("type" to "payment_confirmed", "bookingId" to bookingId)
+            )
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

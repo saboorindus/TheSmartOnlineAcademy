@@ -23,12 +23,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
@@ -45,7 +46,7 @@ data class QrUiState(
 )
 
 class AdminQrViewModel(
-    private val repo: AdminRepository = AdminRepository()
+    private val repo: AdminRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QrUiState())
@@ -128,12 +129,15 @@ class AdminQrViewModel(
 }
 
 @Composable
-fun AdminQrUploadSection(viewModel: AdminDashboardViewModel) {
-    // QR section uses its own lightweight vm via remember
-    val qrVm = remember { AdminQrViewModel() }
-    val uiState by qrVm.uiState.collectAsState()
+fun AdminQrUploadSection(factory: ViewModelProvider.Factory) {
 
     val context = LocalContext.current
+
+    // QR section uses its own lightweight vm via remember
+    val qrVm: AdminQrViewModel = viewModel(factory = factory)
+    val uiState by qrVm.uiState.collectAsState()
+
+
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()

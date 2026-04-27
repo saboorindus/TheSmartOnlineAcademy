@@ -8,11 +8,23 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
+import android.content.Context
+import com.echologics.thesmartonlineacademy.utils.OneSignalHelper
 
-class MessagingRepository {
+class MessagingRepository(private val context: Context) {
 
     private val db = FirebaseFirestore.getInstance()
     private val conversationsCol = db.collection("conversations")
+
+    private val authRepository = AuthRepository()
+
+    private val oneSignalAppId: String by lazy {
+        context.getString(context.resources.getIdentifier("onesignal_app_id", "string", context.packageName))
+    }
+
+    private val oneSignalRestKey: String by lazy {
+        context.getString(context.resources.getIdentifier("onesignal_rest_api_key", "string", context.packageName))
+    }
 
     // ── Send a message ────────────────────────────────────────────────────────
 
@@ -71,6 +83,25 @@ class MessagingRepository {
             batch.set(convoRef, conversation)
 
             batch.commit().await()
+
+            val receiverPlayerId = authRepository.getPlayerIdForUser(receiverId)
+            val (title, body) = OneSignalHelper.newMessagePayload(
+                senderName = senderName,
+                preview = text.take(80)
+            )
+            OneSignalHelper.sendToPlayer(
+                restApiKey = oneSignalRestKey,
+                appId = oneSignalAppId,
+                playerId = receiverPlayerId,
+                title = title,
+                body = body,
+                data = mapOf(
+                    "type" to "new_message",
+                    "conversationId" to convoId,
+                    "senderId" to senderId
+                )
+            )
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

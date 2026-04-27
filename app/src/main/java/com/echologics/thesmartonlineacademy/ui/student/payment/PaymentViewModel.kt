@@ -19,7 +19,7 @@ data class PaymentUiState(
 )
 
 class PaymentViewModel(
-    private val bookingRepository: BookingRepository = BookingRepository()
+    private val bookingRepository: BookingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PaymentUiState())
@@ -54,7 +54,8 @@ class PaymentViewModel(
             val result = bookingRepository.submitPayment(
                 bookingId = bookingId,
                 transactionId = state.transactionId.trim(),
-                senderName = state.senderName.trim()
+                senderName = state.senderName.trim(),
+                amount = state.booking.totalAmount
             )
             result.fold(
                 onSuccess = {

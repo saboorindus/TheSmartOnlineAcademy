@@ -44,7 +44,7 @@ enum class AdminTab(val label: String) {
 }
 
 class AdminDashboardViewModel(
-    private val repo: AdminRepository = AdminRepository(),
+    val repo: AdminRepository,
     private val bookingRepository: BookingRepository
 ) : ViewModel() {
 
@@ -106,10 +106,10 @@ class AdminDashboardViewModel(
         }
     }
 
-    fun confirmPayment(bookingId: String) {
-        _uiState.value = _uiState.value.copy(confirmingBookingId = bookingId)
+    fun confirmPayment(booking: Booking) {
+        _uiState.value = _uiState.value.copy(confirmingBookingId = booking.id)
         viewModelScope.launch {
-            val result = bookingRepository.confirmPayment(bookingId)
+            val result = bookingRepository.confirmPayment(booking.id,booking.teacherName,booking.subject)
             result.fold(
                 onSuccess = {
                     _uiState.value = _uiState.value.copy(confirmingBookingId = null)

@@ -10,7 +10,7 @@ import com.echologics.thesmartonlineacademy.data.repository.AuthRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.UserRole
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,14 +37,11 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
             try {
                 val credentialManager = CredentialManager.create(context)
 
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false) // show all Google accounts
-                    .setServerClientId(webClientId)
-                    .setAutoSelectEnabled(false)
+                val signInWithGoogleOption = GetSignInWithGoogleOption.Builder(webClientId)
                     .build()
 
                 val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
+                    .addCredentialOption(signInWithGoogleOption)
                     .build()
 
                 val credentialResponse = credentialManager.getCredential(

@@ -21,7 +21,7 @@ data class ApprovalBannerState(
 )
 
 class ApprovalBannerViewModel(
-    private val adminRepo: AdminRepository = AdminRepository()
+    private val adminRepo: AdminRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ApprovalBannerState())

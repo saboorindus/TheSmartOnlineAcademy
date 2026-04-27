@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">The Smart Online Academy</string>
+    <string name="onesignal_app_id">124ea57e-2b6d-4390-bdad-fa9d043c9e5c</string>
+    <string name="onesignal_rest_api_key">os_v2_app_cjhkk7rlnvbzbpnn7koqipe6lq7dhjqwepbe5fulirohcxl5d3xvwhb5vqz2xq5kko4ujtranedrcvfovhiipwx6dikzthk322ujdxq</string>
 </resources>

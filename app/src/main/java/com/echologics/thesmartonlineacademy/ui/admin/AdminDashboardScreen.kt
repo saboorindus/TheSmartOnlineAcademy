@@ -17,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
@@ -413,7 +415,7 @@ private fun BookingsTab(uiState: AdminUiState, viewModel: AdminDashboardViewMode
                     isProcessing = uiState.actionLoading == booking.id
                             || uiState.confirmingBookingId == booking.id,
                     onCancel = { viewModel.cancelBooking(booking.id) },
-                    onConfirmPayment = { viewModel.confirmPayment(booking.id) }
+                    onConfirmPayment = { viewModel.confirmPayment(booking) }
                 )
 
             }
@@ -576,5 +578,13 @@ private fun AdminUserCard(user: User, isProcessing: Boolean, onDisable: () -> Un
 
 @Composable
 private fun QrTab(viewModel: AdminDashboardViewModel) {
-    AdminQrUploadSection(viewModel = viewModel)
+    val factory = remember {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return AdminQrViewModel(viewModel.repo) as T
+            }
+        }
+    }
+    AdminQrUploadSection(factory = factory)
 }

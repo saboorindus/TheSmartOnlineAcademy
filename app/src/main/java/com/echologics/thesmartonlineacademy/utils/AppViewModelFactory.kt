@@ -9,6 +9,7 @@ import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
 import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
 import com.echologics.thesmartonlineacademy.data.repository.TeacherRepository
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
+import com.echologics.thesmartonlineacademy.ui.admin.AdminQrViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginViewModel
 import com.echologics.thesmartonlineacademy.ui.messaging.ChatViewModel
 import com.echologics.thesmartonlineacademy.ui.messaging.ConversationListViewModel
@@ -52,7 +53,7 @@ class AppViewModelFactory(
 
             // Teacher
             modelClass.isAssignableFrom(TeacherBookingsViewModel::class.java) ->
-                TeacherBookingsViewModel() as T
+                TeacherBookingsViewModel(bookingRepository,adminRepository) as T
 
             // Student
             modelClass.isAssignableFrom(DiscoveryViewModel::class.java) ->
@@ -62,10 +63,10 @@ class AppViewModelFactory(
                 TeacherProfileViewModel(teacherRepository, messagingRepository) as T
 
             modelClass.isAssignableFrom(BookingViewModel::class.java) ->
-                BookingViewModel() as T
+                BookingViewModel(bookingRepository) as T
 
             modelClass.isAssignableFrom(PaymentViewModel::class.java) ->
-                PaymentViewModel() as T
+                PaymentViewModel(bookingRepository) as T
 
             // Session
             modelClass.isAssignableFrom(SessionViewModel::class.java) ->
@@ -91,6 +92,9 @@ class AppViewModelFactory(
 
             modelClass.isAssignableFrom(TeacherProfileEditViewModel::class.java) ->
                 TeacherProfileEditViewModel(authRepository) as T
+
+            modelClass.isAssignableFrom(AdminQrViewModel::class.java) ->
+                AdminQrViewModel(adminRepository) as T
 
             else -> throw IllegalArgumentException(
                 "Unknown ViewModel class: ${modelClass.name}"

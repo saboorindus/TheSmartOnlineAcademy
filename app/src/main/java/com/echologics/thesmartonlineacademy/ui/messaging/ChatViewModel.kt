@@ -24,7 +24,7 @@ data class ChatUiState(
 )
 
 class ChatViewModel(
-    private val repo: MessagingRepository = MessagingRepository()
+    private val repo: MessagingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())

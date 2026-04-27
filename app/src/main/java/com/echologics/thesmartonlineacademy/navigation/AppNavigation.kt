@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -117,10 +118,13 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.RoleSelect.route
 ) {
+
+    val context = LocalContext.current
+
     val authRepository = remember { AuthRepository() }
-    val messageRepository = remember { MessagingRepository() }
-    val adminRepository = remember { AdminRepository() }
-    val bookingRepository = remember { BookingRepository() }
+    val messageRepository = remember { MessagingRepository(context) }
+    val adminRepository = remember { AdminRepository(context) }
+    val bookingRepository = remember { BookingRepository(context) }
     val reviewRepository = remember { ReviewRepository() }
     val teacherRepository = remember { TeacherRepository() }
     val factory = remember { AppViewModelFactory(

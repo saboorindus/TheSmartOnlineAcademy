@@ -28,21 +28,13 @@ class AuthRepository {
             val uid = firebaseUser.uid
             val email = firebaseUser.email ?: ""
 
-            // Check if this user already exists in Firestore
             val existingDoc = db.collection("users").document(uid).get().await()
 
             val user = if (existingDoc.exists()) {
-                // Returning user — read their existing role, don't overwrite it
                 existingDoc.toObject(User::class.java)
                     ?: User(uid = uid, email = email, role = role)
             } else {
-                // First time — create user document with the selected role
-                val newUser = User(
-                    uid = uid,
-                    email = email,
-                    role = role,
-                    onboardingComplete = false
-                )
+                val newUser = User(uid = uid, email = email, role = role, onboardingComplete = false)
                 db.collection("users").document(uid).set(newUser).await()
                 newUser
             }
@@ -52,6 +44,31 @@ class AuthRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun savePlayerIdToFirestore(uid: String, playerId: String) {
+        try {
+            db.collection("users").document(uid)
+                .update("oneSignalPlayerId", playerId)
+                .await()
+        } catch (e: Exception) {
+            // Document may not exist yet on very first launch — use set with merge
+            try {
+                db.collection("users").document(uid)
+                    .set(mapOf("oneSignalPlayerId" to playerId), com.google.firebase.firestore.SetOptions.merge())
+                    .await()
+            } catch (_: Exception) {}
+        }
+    }
+
+    suspend fun getPlayerIdForUser(uid: String): String {
+        return try {
+            val doc = db.collection("users").document(uid).get().await()
+            doc.getString("oneSignalPlayerId") ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
 
     suspend fun signUp(email: String, password: String, role: UserRole): Result<User> {
         return try {

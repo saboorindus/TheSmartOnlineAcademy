@@ -50,7 +50,7 @@ data class BookingUiState(
 }
 
 class BookingViewModel(
-    private val bookingRepository: BookingRepository = BookingRepository()
+    private val bookingRepository: BookingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BookingUiState())

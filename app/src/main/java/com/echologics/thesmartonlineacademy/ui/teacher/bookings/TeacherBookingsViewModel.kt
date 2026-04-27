@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
+import com.echologics.thesmartonlineacademy.data.repository.AdminRepository
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +30,8 @@ enum class BookingTab(val label: String) {
 }
 
 class TeacherBookingsViewModel(
-    private val bookingRepository: BookingRepository = BookingRepository()
+    private val bookingRepository: BookingRepository,
+    val adminRepository: AdminRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TeacherBookingsUiState())
@@ -62,10 +64,10 @@ class TeacherBookingsViewModel(
         )
 
 
-    fun confirmPayment(bookingId: String) {
-        _uiState.value = _uiState.value.copy(confirmingBookingId = bookingId)
+    fun confirmPayment(booking: Booking) {
+        _uiState.value = _uiState.value.copy(confirmingBookingId = booking.id)
         viewModelScope.launch {
-            val result = bookingRepository.confirmPayment(bookingId)
+            val result = bookingRepository.confirmPayment(booking.id, booking.teacherName, booking.subject)
             result.fold(
                 onSuccess = {
                     _uiState.value = _uiState.value.copy(confirmingBookingId = null)

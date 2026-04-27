@@ -18,7 +18,7 @@ data class ConversationListUiState(
 )
 
 class ConversationListViewModel(
-    private val repo: MessagingRepository = MessagingRepository()
+    private val repo: MessagingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ConversationListUiState())

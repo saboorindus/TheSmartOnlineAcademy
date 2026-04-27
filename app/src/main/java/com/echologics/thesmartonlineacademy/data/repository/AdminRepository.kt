@@ -1,6 +1,7 @@
 package com.echologics.thesmartonlineacademy.data.repository
 
-import com.echologics.thesmartonlineacademy.SupabaseClient
+import android.content.Context
+import com.echologics.thesmartonlineacademy.utils.SupabaseClient
 import com.echologics.thesmartonlineacademy.data.model.AdminQrConfig
 import com.echologics.thesmartonlineacademy.data.model.AdminStats
 import com.echologics.thesmartonlineacademy.data.model.ApprovalStatus
@@ -8,12 +9,13 @@ import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
+import com.echologics.thesmartonlineacademy.utils.OneSignalHelper
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import io.github.jan.supabase.storage.storage
 
 
-class AdminRepository {
+class AdminRepository(private val context: Context) {
 
     private val db = FirebaseFirestore.getInstance()
     private val teachersCol = db.collection("teachers")
@@ -21,6 +23,20 @@ class AdminRepository {
     private val bookingsCol = db.collection("bookings")
     private val usersCol = db.collection("users")
     private val configCol = db.collection("config")
+    private val authRepository = AuthRepository()
+
+
+    private val oneSignalAppId: String? by lazy {
+        context.getString(
+            context.resources.getIdentifier("onesignal_app_id", "string", context.packageName)
+        )
+    }
+
+    private val oneSignalRestKey: String? by lazy {
+        context.getString(
+            context.resources.getIdentifier("onesignal_rest_api_key", "string", context.packageName)
+        )
+    }
 
     // ── Stats ─────────────────────────────────────────────────────────────────
 
@@ -110,6 +126,20 @@ class AdminRepository {
                 )
             )
             batch.commit().await()
+
+            if (oneSignalAppId != null && oneSignalRestKey != null) {
+                val teacherPlayerId = authRepository.getPlayerIdForUser(uid)
+                val (title, body) = OneSignalHelper.teacherApprovedPayload()
+                OneSignalHelper.sendToPlayer(
+                    restApiKey = oneSignalRestKey!!,
+                    appId = oneSignalAppId!!,
+                    playerId = teacherPlayerId,
+                    title = title,
+                    body = body,
+                    data = mapOf("type" to "profile_approved")
+                )
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -140,6 +170,20 @@ class AdminRepository {
                 )
             )
             batch.commit().await()
+
+            if (oneSignalAppId != null && oneSignalRestKey != null) {
+                val teacherPlayerId = authRepository.getPlayerIdForUser(uid)
+                val (title, body) = OneSignalHelper.teacherRejectedPayload(reason)
+                OneSignalHelper.sendToPlayer(
+                    restApiKey = oneSignalRestKey!!,
+                    appId = oneSignalAppId!!,
+                    playerId = teacherPlayerId,
+                    title = title,
+                    body = body,
+                    data = mapOf("type" to "profile_rejected")
+                )
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

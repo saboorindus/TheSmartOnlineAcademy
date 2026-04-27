@@ -31,7 +31,7 @@ fun TeacherBookingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filtered by viewModel.filteredBookings.collectAsState()
-    val bannerVm = remember { ApprovalBannerViewModel() }
+    val bannerVm = remember { ApprovalBannerViewModel(adminRepo = viewModel.adminRepository) }
 
 
     Column(
