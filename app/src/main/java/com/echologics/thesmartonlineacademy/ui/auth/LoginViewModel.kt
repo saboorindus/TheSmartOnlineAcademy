@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.UserRole
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.onesignal.OneSignal
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,8 +67,19 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
                     result.fold(
                         onSuccess = { user ->
+
+                            viewModelScope.launch {
+                                try {
+                                    val playerId = OneSignal.User.pushSubscription.id
+                                    if (playerId.isNotEmpty()) {
+                                        authRepository.savePlayerIdToFirestore(user.uid, playerId)
+                                    }
+                                } catch (_: Exception) {}
+                            }
+
                             _uiState.value = LoginUiState(loggedInUser = user)
-                        },
+                        }
+                        ,
                         onFailure = { e ->
                             _uiState.value = LoginUiState(error = e.message ?: "Sign-in failed")
                         }
@@ -106,8 +118,22 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
             val result = authRepository.logIn(state.email.trim(), state.password)
             result.fold(
                 onSuccess = { user ->
-                    _uiState.value = _uiState.value.copy(isLoading = false, loggedInUser = user)
-                },
+
+                    viewModelScope.launch {
+                        try {
+                            val playerId = OneSignal.User.pushSubscription.id
+                            if (playerId.isNotEmpty()) {
+                                authRepository.savePlayerIdToFirestore(user.uid, playerId)
+                            }
+                        } catch (_: Exception) {}
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        loggedInUser = user
+                    )
+                }
+                ,
                 onFailure = { e ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

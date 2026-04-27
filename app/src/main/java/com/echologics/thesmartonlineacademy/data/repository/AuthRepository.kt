@@ -69,7 +69,6 @@ class AuthRepository {
         }
     }
 
-
     suspend fun signUp(email: String, password: String, role: UserRole): Result<User> {
         return try {
             val result = auth.createUserWithEmailAndPassword(email, password).await()

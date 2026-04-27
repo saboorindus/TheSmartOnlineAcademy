@@ -43,7 +43,10 @@ object OneSignalHelper {
             Log.w(TAG, "sendToPlayer: playerId is blank, skipping")
             return@withContext false
         }
+        Log.d(TAG, "Attempting to send notification to player: $playerId, Title: $title")
+
         try {
+            Log.v(TAG, "Step 1: Building JSON payload...")
             val payload = JSONObject().apply {
                 put("app_id", appId)
                 put("include_player_ids", JSONArray().put(playerId))
@@ -57,6 +60,9 @@ object OneSignalHelper {
                 }
             }
 
+            Log.d(TAG, "Payload: $payload")
+
+            Log.v(TAG, "Step 2: Opening connection to OneSignal...")
             val url = URL(ONESIGNAL_API)
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
@@ -67,16 +73,27 @@ object OneSignalHelper {
                 readTimeout = 10_000
             }
 
+            Log.v(TAG, "Step 3: Writing payload to output stream...")
             OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(payload.toString()) }
 
+            Log.v(TAG, "Step 4: Waiting for response...")
             val responseCode = conn.responseCode
+            val responseMessage = conn.responseMessage
+
+            Log.v(TAG, "Step 5: Response received - Code: $responseCode")
+            val errorBody = if (responseCode !in 200..299) {
+                conn.errorStream?.bufferedReader()?.use { it.readText() }
+            } else null
+            val responseBody = if (responseCode in 200..299) conn.inputStream.bufferedReader().use { it.readText() } else null
+
             conn.disconnect()
 
-            if (responseCode == HttpURLConnection.HTTP_OK || responseCode == 200) {
+            if (responseCode in 200..299) {
                 Log.d(TAG, "Notification sent successfully to player $playerId")
                 true
             } else {
-                Log.w(TAG, "OneSignal returned $responseCode for player $playerId")
+                Log.w(TAG, "OneSignal error: $responseCode $responseMessage. Body: $errorBody")
+                Log.v(TAG, "Full Error Info: $errorBody")
                 false
             }
         } catch (e: Exception) {
