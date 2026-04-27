@@ -144,13 +144,9 @@ private fun TeacherProfileContent(
     averageRating: Float,
     modifier: Modifier = Modifier
 ) {
-    val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            bottom = bottomPadding + 120.dp // 120dp = your bottom bar height buffer
-        )
+        contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         // Header
         item {
