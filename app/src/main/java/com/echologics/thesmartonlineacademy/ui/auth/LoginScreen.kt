@@ -151,7 +151,7 @@ fun LoginScreen(
 @Composable
 fun GoogleLogo() {
     Icon(
-        painter = painterResource(id = R.drawable.ic_google_logo),
+        painter = painterResource(id = R.drawable.google_icon),
         contentDescription = "Google Logo",
         tint = Color.Unspecified, // IMPORTANT: keeps original colors
         modifier = Modifier.size(20.dp)
