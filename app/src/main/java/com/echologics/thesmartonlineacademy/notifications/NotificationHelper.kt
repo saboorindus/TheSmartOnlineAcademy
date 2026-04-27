@@ -19,57 +19,29 @@ import com.echologics.thesmartonlineacademy.R
 
 object NotificationHelper {
 
-    private const val CHANNEL_BOOKINGS = "bookings"
-    private const val CHANNEL_MESSAGES = "messages"
-    private const val CHANNEL_SESSIONS = "sessions"
+    private const val CHANNEL_GENERAL = "app_notifications"
+
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun createChannels(context: Context) {
+    fun createChannel(context: Context) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Sound setup — shared across channels
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_NOTIFICATION)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
 
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_BOOKINGS,
-                "Booking updates",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications for booking confirmations and payment status"
-                enableLights(true)
-                enableVibration(true)
-                setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes) // 👈 add this
-            }
-        )
+        val channel = NotificationChannel(
+            CHANNEL_GENERAL,
+            "App Notifications",
+            NotificationManager.IMPORTANCE_HIGH // 👈 REQUIRED for heads-up
+        ).apply {
+            description = "All app notifications"
+            enableLights(true)
+            enableVibration(true)
+            setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes) // 👈 sound
+        }
 
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_MESSAGES,
-                "Messages",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "New message notifications"
-                enableLights(true)
-                enableVibration(true)
-                setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes) // 👈 add this
-            }
-        )
-
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_SESSIONS,
-                "Session reminders",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Reminders before your session starts"
-                enableLights(true)
-                enableVibration(true)
-                setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes) // 👈 add this
-            }
-        )
+        manager.createNotificationChannel(channel)
     }
 }

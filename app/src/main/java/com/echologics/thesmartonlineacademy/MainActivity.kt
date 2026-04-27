@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        NotificationHelper.createChannels(this)
+        NotificationHelper.createChannel(this)
     }
 
     private suspend fun resolveStartDestination(): String {
