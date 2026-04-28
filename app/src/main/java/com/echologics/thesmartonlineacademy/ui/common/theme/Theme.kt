@@ -29,14 +29,15 @@ val White = Color(0xFFFFFFFF)
 val Black = Color(0xFF2C2C2A)
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PurpleDark,
-    secondary = Teal,
+    primary = Purple80,
+    secondary = PurpleGrey80,
     background = Black,
     surface = Black,
     onPrimary = White,
     onBackground = White,
     onSurface = White,
-    error = ErrorRed
+    error = ErrorRed,
+    tertiary = Pink80
 )
 
 private val LightColors = lightColorScheme(
