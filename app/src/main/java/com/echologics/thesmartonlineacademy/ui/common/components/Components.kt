@@ -2,6 +2,8 @@ package com.echologics.thesmartonlineacademy.ui.common.components
 
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,14 +11,22 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.echologics.thesmartonlineacademy.ui.common.theme.Gray100
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
+import com.echologics.thesmartonlineacademy.R
+
 
 @Composable
 fun PrimaryButton(
@@ -105,6 +115,69 @@ fun CountryPickerField(
                         onExpandedChange(false)
                     }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun PaymentMethodCard(
+    label: String,
+    isSelected: Boolean,
+    accentColor: Color,
+    lightColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val borderWidth = if (isSelected) 2.dp else 0.5.dp
+    val borderColor = if (isSelected) accentColor else MaterialTheme.colorScheme.outline
+
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(borderWidth, borderColor)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(lightColor),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Image(
+                    painter = painterResource(
+                        id = if (label == "EasyPaisa") R.drawable.easypaisa
+                        else R.drawable.jazzcash
+                    ),
+                    contentDescription = "$label logo",
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Fit
+                )
+
+            }
+            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            if (isSelected) {
+                Surface(shape = RoundedCornerShape(4.dp), color = lightColor) {
+                    Text(
+                        "Selected",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = accentColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
     }

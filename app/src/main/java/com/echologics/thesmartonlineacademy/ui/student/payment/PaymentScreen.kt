@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
+import com.echologics.thesmartonlineacademy.ui.common.components.PaymentMethodCard
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
@@ -58,6 +59,7 @@ fun PaymentScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val canSubmit by viewModel.canSubmit.collectAsState()
 
     LaunchedEffect(booking) {
         viewModel.setBooking(booking)
@@ -125,6 +127,48 @@ fun PaymentScreen(
             )
 
             // QR + payment details card
+            // Method selector
+            Text("Choose payment method", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Text(
+                "Tap a method to see its QR code",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                modifier = Modifier.padding(top = 2.dp, bottom = 14.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                PaymentMethodCard(
+                    label = "EasyPaisa",
+                    isSelected = uiState.selectedMethod == PaymentMethod.EASYPAISA,
+                    accentColor = Teal,
+                    lightColor = TealLight,
+                    onClick = { viewModel.onMethodSelected(PaymentMethod.EASYPAISA) },
+                    modifier = Modifier.weight(1f)
+                )
+                PaymentMethodCard(
+                    label = "JazzCash",
+                    isSelected = uiState.selectedMethod == PaymentMethod.JAZZCASH,
+                    accentColor = Purple,
+                    lightColor = PurpleLight,
+                    onClick = { viewModel.onMethodSelected(PaymentMethod.JAZZCASH) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+// QR card — reacts to selected method
+            val qrUrl = when (uiState.selectedMethod) {
+                PaymentMethod.EASYPAISA -> "https://vilzjwakvylaihhwitwi.supabase.co/storage/v1/object/public/qr-images/qr/easypaisa_qr.png"
+                PaymentMethod.JAZZCASH  -> "https://vilzjwakvylaihhwitwi.supabase.co/storage/v1/object/public/qr-images/qr/jazzcash_qr.png"
+            }
+            val qrAccent = if (uiState.selectedMethod == PaymentMethod.EASYPAISA) Teal else Purple
+            val qrLabel = if (uiState.selectedMethod == PaymentMethod.EASYPAISA)
+                "Scan with EasyPaisa app" else "Scan with JazzCash app"
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -136,7 +180,6 @@ fun PaymentScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // QR image — left side, fixed size
                     Box(
                         modifier = Modifier
                             .size(130.dp)
@@ -145,20 +188,21 @@ fun PaymentScreen(
                             .border(0.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        QrImage(qrUrl = "https://vilzjwakvylaihhwitwi.supabase.co/storage/v1/object/public/qr-images/qr/admin_qr.png")
+                        QrImage(qrUrl = qrUrl)
                     }
 
-                    // Right side info
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
+                        Text(qrLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                        Spacer(Modifier.height(4.dp))
                         Text("Send exactly", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
                         Text(
                             booking.totalAmount,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Purple,
+                            color = qrAccent,
                             lineHeight = 28.sp
                         )
 
@@ -172,15 +216,6 @@ fun PaymentScreen(
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Text("Accepts", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
-                        Spacer(Modifier.height(4.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            PaymentBadge("EasyPaisa", Teal, TealLight)
-                            PaymentBadge("JazzCash", Purple, PurpleLight)
-                        }
                     }
                 }
             }
@@ -243,7 +278,7 @@ fun PaymentScreen(
             PrimaryButton(
                 text = "Submit payment",
                 onClick = viewModel::submitPayment,
-                enabled = viewModel.canSubmit(),
+                enabled = canSubmit,          // was viewModel.canSubmit()
                 isLoading = uiState.isLoading
             )
 

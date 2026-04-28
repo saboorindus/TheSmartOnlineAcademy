@@ -96,7 +96,8 @@ class BookingRepository(private val context: Context) {
         bookingId: String,
         transactionId: String,
         senderName: String,
-        amount: String
+        amount: String,
+        paymentMethod: String
     ): Result<Unit> {
         return try {
             bookingsCol.document(bookingId).update(
@@ -104,7 +105,8 @@ class BookingRepository(private val context: Context) {
                     "status" to BookingStatus.PAYMENT_SUBMITTED.name,
                     "paymentTransactionId" to transactionId,
                     "paymentSenderName" to senderName,
-                    "paymentSubmittedAt" to System.currentTimeMillis()
+                    "paymentSubmittedAt" to System.currentTimeMillis(),
+                    "paymentMethod" to paymentMethod
                 )
             ).await()
 
