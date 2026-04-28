@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "880537878197-1688g2b8sks036deq97rsc89due46iek.apps.googleusercontent.com",
+          "client_id": "880537878197-48g83c2ro53ikcg4n2oqnerq5n0lp2rn.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.echologics.thesmartonlineacademy",
-            "certificate_hash": "919a55a4df0ecaf4218ecbbbb352482354c08eb0"
+            "certificate_hash": "2b9bc8d75c9d413bec6c56561757c2ee5546b3df"
           }
         },
         {
