@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "880537878197-51hvq6d9ka0epo0cdnkt44dv2mgo12qs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.echologics.thesmartonlineacademy",
+            "certificate_hash": "f307034cd0cb32aaf62a77712e5a00178b1f04d2"
+          }
+        },
+        {
           "client_id": "880537878197-mbic46eovmjo3napi4qb2rp7tg5meq82.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
