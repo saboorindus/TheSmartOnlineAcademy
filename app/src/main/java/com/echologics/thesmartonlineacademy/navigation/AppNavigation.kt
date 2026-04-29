@@ -65,7 +65,6 @@ import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsS
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditScreen
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditViewModel
-import com.echologics.thesmartonlineacademy.ui.terms.TermsScreen
 import com.echologics.thesmartonlineacademy.utils.AppViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 
@@ -170,16 +169,6 @@ fun AppNavigation(
                 },
             )
         }
-
-        composable(Screen.Terms.route) { backStack ->
-            val role = backStack.arguments?.getString("role") ?: "student"
-            TermsScreen(
-                role = role,
-                onAccepted = { navController.navigate(Screen.Signup.createRoute(role)) },
-                onBack = { navController.popBackStack() }
-            )
-        }
-
         // ── Onboarding ────────────────────────────────────────────────────────
 
         composable(Screen.TeacherOnboarding.route) {

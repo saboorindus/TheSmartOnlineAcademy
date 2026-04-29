@@ -3,6 +3,7 @@ package com.echologics.thesmartonlineacademy.ui.auth
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,14 +12,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.echologics.thesmartonlineacademy.R
 import com.echologics.thesmartonlineacademy.data.model.User
+import com.echologics.thesmartonlineacademy.ui.common.theme.Black
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
+import com.echologics.thesmartonlineacademy.ui.terms.TermsDialog
 
 @Composable
 fun LoginScreen(
@@ -30,8 +37,18 @@ fun LoginScreen(
     val context = LocalContext.current
     val webClientId = stringResource(id = R.string.default_web_client_id)
 
+    var showTermsDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(uiState.loggedInUser) {
         uiState.loggedInUser?.let { onLoginSuccess(it) }
+    }
+
+    // Terms dialog
+    if (showTermsDialog) {
+        TermsDialog(
+            role = role,
+            onDismiss = { showTermsDialog = false }
+        )
     }
 
     Column(
@@ -62,6 +79,7 @@ fun LoginScreen(
             fontSize = 26.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
+            color = Black,
             lineHeight = 34.sp
         )
 
@@ -107,7 +125,6 @@ fun LoginScreen(
                     strokeWidth = 2.dp
                 )
             } else {
-                // Google G logo drawn with colored squares (no image asset needed)
                 GoogleLogo()
                 Spacer(Modifier.width(10.dp))
                 Text(
@@ -139,11 +156,41 @@ fun LoginScreen(
 
         Spacer(Modifier.height(32.dp))
 
-        Text(
-            text = "By continuing, you agree to our Terms and Conditions",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-            textAlign = TextAlign.Center
+        // "By continuing..." with tappable blue "Terms and Conditions"
+        val termsAnnotatedString = buildAnnotatedString {
+            withStyle(
+                style = SpanStyle(
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+            ) {
+                append("By continuing, you agree to our ")
+            }
+            pushStringAnnotation(tag = "TERMS", annotation = "terms")
+            withStyle(
+                style = SpanStyle(
+                    fontSize = 12.sp,
+                    color = Purple,
+                    fontWeight = FontWeight.SemiBold
+                )
+            ) {
+                append("Terms and Conditions")
+            }
+            pop()
+        }
+
+        ClickableText(
+            text = termsAnnotatedString,
+            style = TextStyle(textAlign = TextAlign.Center),
+            onClick = { offset ->
+                termsAnnotatedString.getStringAnnotations(
+                    tag = "TERMS",
+                    start = offset,
+                    end = offset
+                ).firstOrNull()?.let {
+                    showTermsDialog = true
+                }
+            }
         )
     }
 }
@@ -153,7 +200,7 @@ fun GoogleLogo() {
     Icon(
         painter = painterResource(id = R.drawable.google_icon),
         contentDescription = "Google Logo",
-        tint = Color.Unspecified, // IMPORTANT: keeps original colors
+        tint = Color.Unspecified,
         modifier = Modifier.size(20.dp)
     )
 }

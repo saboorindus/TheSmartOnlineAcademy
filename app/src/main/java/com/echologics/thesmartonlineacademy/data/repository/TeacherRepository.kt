@@ -34,7 +34,7 @@ class TeacherRepository {
             }
             if (maxRate != null) {
                 teachers = teachers.filter {
-                    it.ratePerTenMin >= 10 && it.ratePerTenMin <= maxRate
+                    it.ratePerTenMin in 10..maxRate
                 }
             }
             Result.success(teachers)
