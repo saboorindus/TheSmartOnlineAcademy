@@ -151,6 +151,10 @@
 }
 
 
+-keep class io.agora.** { *; }
+-dontwarn io.agora.**
+
+
 # ─── Suppress common warnings ─────────────────────────────────────────────────
 -dontwarn javax.annotation.**
 -dontwarn org.conscrypt.**
@@ -160,3 +164,4 @@
 -dontwarn sun.misc.Unsafe
 -dontwarn java.lang.invoke.**
 -dontwarn com.google.protobuf.**
+
