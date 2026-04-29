@@ -19,8 +19,11 @@ class TeacherRepository {
         maxRate: Int? = null
     ): Result<List<TeacherProfile>> {
         return try {
-            var query: Query = teachersCol
+
+            val query: Query = teachersCol
                 .whereEqualTo("approvalStatus", ApprovalStatus.APPROVED.name)
+                .whereEqualTo("disabled", false)
+
 
             val snapshot = query.get().await()
             var teachers = snapshot.documents.mapNotNull { it.toObject(TeacherProfile::class.java) }
@@ -73,7 +76,7 @@ class TeacherRepository {
             val snapshot = reviewsCol.whereEqualTo("teacherId", teacherId).get().await()
             val ratings = snapshot.documents.mapNotNull { it.toObject(Review::class.java)?.rating }
             if (ratings.isEmpty()) 0f else ratings.average().toFloat()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             0f
         }
     }

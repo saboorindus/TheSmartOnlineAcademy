@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Main app theme -->
     <style name="Theme.TheSmartOnlineAcademy" parent="android:Theme.Material.Light.NoActionBar" />
 
-
-<!--    <style name="Theme.TheSmartOnlineAcademy" parent="android:Theme.Material.Light.NoActionBar">-->
-<!--        <item name="android:statusBarColor">@android:color/transparent</item>-->
-<!--        <item name="android:navigationBarColor">@android:color/transparent</item>-->
-<!--        <item name="android:windowLightStatusBar">true</item>-->
-<!--    </style>-->
-
-
-<!--    <style name="Theme.TheSmartOnlineAcademy.Splash" parent="Theme.SplashScreen">-->
-<!--        <item name="windowSplashScreenBackground">#13253d</item>-->
-<!--        <item name="windowSplashScreenAnimatedIcon">@drawable/icon</item>-->
-<!--        <item name="postSplashScreenTheme">@style/Theme.TheSmartOnlineAcademy</item>-->
-<!--    </style>-->
+    <!-- Splash screen theme -->
+    <style name="Theme.TheSmartOnlineAcademy.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#13253d</item>
+        <!-- Your app icon (should be an adaptive icon or a drawable) -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <!-- Branding image shown at the bottom (optional, API 31+) -->
+        <!-- <item name="windowSplashScreenBrandingImage">@drawable/your_branding</item> -->
+        <!-- This tells the system to switch to the real theme after the splash -->
+        <item name="postSplashScreenTheme">@style/Theme.TheSmartOnlineAcademy</item>
+    </style>
 
 </resources>

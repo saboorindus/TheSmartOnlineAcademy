@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.echologics.thesmartonlineacademy.R
 import com.echologics.thesmartonlineacademy.data.model.User
+import com.echologics.thesmartonlineacademy.ui.common.components.DisabledAccountDialog
 import com.echologics.thesmartonlineacademy.ui.common.theme.Black
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
@@ -192,6 +195,14 @@ fun LoginScreen(
                 }
             }
         )
+
+        // Disabled account dialog
+        if (uiState.showDisabledDialog) {
+            DisabledAccountDialog(
+                onDismiss = viewModel::dismissDisabledDialog
+            )
+        }
+
     }
 }
 

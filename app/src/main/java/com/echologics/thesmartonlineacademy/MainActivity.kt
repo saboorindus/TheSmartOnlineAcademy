@@ -7,10 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.echologics.thesmartonlineacademy.navigation.AppNavigation
 import com.echologics.thesmartonlineacademy.navigation.Screen
 import com.echologics.thesmartonlineacademy.notifications.NotificationHelper
+import com.echologics.thesmartonlineacademy.ui.common.components.DisabledAccountDialog
 import com.echologics.thesmartonlineacademy.ui.common.theme.TheSmartOnlineAcademyTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -18,20 +20,41 @@ import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
 
+    private var showDisabledDialogState: MutableState<Boolean>? = null
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        var startDestination: String? = null
+        splashScreen.setKeepOnScreenCondition { startDestination == null }
+
         setContent {
             TheSmartOnlineAcademyTheme {
-                var startDestination by remember { mutableStateOf<String?>(null) }
+                var dest by remember { mutableStateOf<String?>(null) }
+                var showDisabledDialog by remember { mutableStateOf(false) }
+
+                // Store reference so onResume can update it directly
+                showDisabledDialogState = remember { mutableStateOf(false) }
+                showDisabledDialog = showDisabledDialogState!!.value
 
                 LaunchedEffect(Unit) {
-                    startDestination = resolveStartDestination()
+                    val (destination, isDisabled) = resolveStartDestination()
+                    showDisabledDialogState?.value = isDisabled
+                    dest = destination
+                    startDestination = destination
                 }
 
-                startDestination?.let { dest ->
-                    AppNavigation(startDestination = dest)
+                if (showDisabledDialog) {
+                    DisabledAccountDialog(
+                        onDismiss = { showDisabledDialogState?.value = false }
+                    )
+                }
+
+                dest?.let {
+                    AppNavigation(startDestination = it)
                 }
             }
         }
@@ -39,9 +62,37 @@ class MainActivity : ComponentActivity() {
         NotificationHelper.createChannel(this)
     }
 
-    private suspend fun resolveStartDestination(): String {
+    private var isFirstResume = true
+
+    override fun onResume() {
+        super.onResume()
+        if (isFirstResume) {
+            isFirstResume = false
+            return
+        }
+        checkIfUserDisabled()
+    }
+
+    private fun checkIfUserDisabled() {
+        val firebaseUser = FirebaseAuth.getInstance().currentUser ?: return
+
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(firebaseUser.uid)
+            .get()
+            .addOnSuccessListener { doc ->
+                val user = doc.toObject(User::class.java) ?: return@addOnSuccessListener
+                if (user.disabled == true) {
+                    FirebaseAuth.getInstance().signOut()
+                    // ✅ Just show the dialog and update dest — no activity restart
+                    showDisabledDialogState?.value = true
+                }
+            }
+    }
+
+    private suspend fun resolveStartDestination(): Pair<String, Boolean> {
         val firebaseUser = FirebaseAuth.getInstance().currentUser
-            ?: return Screen.RoleSelect.route
+            ?: return Pair(Screen.RoleSelect.route, false)
 
         return try {
             val doc = FirebaseFirestore.getInstance()
@@ -52,16 +103,20 @@ class MainActivity : ComponentActivity() {
 
             val user = doc.toObject(User::class.java)
             when {
-                user == null -> Screen.RoleSelect.route
-                user.role.name.lowercase() == "admin" -> Screen.AdminPanel.route
-                !user.onboardingComplete && user.role.name.lowercase() == "teacher" -> Screen.TeacherOnboarding.route
-                !user.onboardingComplete && user.role.name.lowercase() == "student" -> Screen.StudentOnboarding.route
-                user.role.name.lowercase() == "teacher" -> Screen.TeacherHome.route
-                else -> Screen.StudentHome.route
+                user == null -> Pair(Screen.RoleSelect.route, false)
+                user.disabled == true -> {
+                    FirebaseAuth.getInstance().signOut()
+                    Pair(Screen.RoleSelect.route, true)
+                }
+                user.role.name.lowercase() == "admin" -> Pair(Screen.AdminPanel.route, false)
+                !user.onboardingComplete && user.role.name.lowercase() == "teacher" -> Pair(Screen.TeacherOnboarding.route, false)
+                !user.onboardingComplete && user.role.name.lowercase() == "student" -> Pair(Screen.StudentOnboarding.route, false)
+                user.role.name.lowercase() == "teacher" -> Pair(Screen.TeacherHome.route, false)
+                else -> Pair(Screen.StudentHome.route, false)
             }
-        } catch (_: Exception) {
-            Screen.RoleSelect.route
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "resolveStartDestination failed", e)
+            Pair(Screen.RoleSelect.route, false)
         }
     }
 }
-

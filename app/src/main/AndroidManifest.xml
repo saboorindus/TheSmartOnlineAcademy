@@ -34,7 +34,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.TheSmartOnlineAcademy">
+            android:theme="@style/Theme.TheSmartOnlineAcademy.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

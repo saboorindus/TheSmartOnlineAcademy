@@ -191,17 +191,36 @@ class AdminDashboardViewModel(
 
     // ── User actions ──────────────────────────────────────────────────────────
 
-    fun disableUser(uid: String) {
-        _uiState.value = _uiState.value.copy(actionLoading = uid)
+//    fun disableUser(uid: String) {
+//        _uiState.value = _uiState.value.copy(actionLoading = uid)
+//        viewModelScope.launch {
+//            repo.disableUser(uid)
+//            _uiState.value = _uiState.value.copy(
+//                actionLoading = null,
+//                successMessage = "User disabled"
+//            )
+//            loadAll()
+//        }
+//    }
+
+    fun toggleUserStatus(user: User) {
+        _uiState.value = _uiState.value.copy(actionLoading = user.uid)
+
         viewModelScope.launch {
-            repo.disableUser(uid)
+            val newState = user.disabled != true
+
+            repo.setUserDisabled(user.uid, newState)
+
             _uiState.value = _uiState.value.copy(
                 actionLoading = null,
-                successMessage = "User disabled"
+                successMessage = if (newState) "User disabled" else "User enabled"
             )
+
             loadAll()
         }
     }
+
+
 
     fun clearMessage() {
         _uiState.value = _uiState.value.copy(successMessage = null, error = null)

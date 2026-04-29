@@ -226,14 +226,33 @@ class AdminRepository(private val context: Context) {
         }
     }
 
-    suspend fun disableUser(uid: String): Result<Unit> {
+//    suspend fun disableUser(uid: String): Result<Unit> {
+//        return try {
+//            usersCol.document(uid).update("isDisabled", true).await()
+//            Result.success(Unit)
+//        } catch (e: Exception) {
+//            Result.failure(e)
+//        }
+//    }
+
+    suspend fun setUserDisabled(uid: String, disabled: Boolean): Result<Unit> {
         return try {
-            usersCol.document(uid).update("isDisabled", true).await()
+            usersCol.document(uid)
+                .update("disabled", disabled)
+                .await()
+
+            // 🔥 IMPORTANT: also update teacher collection
+            teachersCol.document(uid)
+                .update("disabled", disabled)
+                .await()
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
+
 
     // ── QR Config ─────────────────────────────────────────────────────────────
 

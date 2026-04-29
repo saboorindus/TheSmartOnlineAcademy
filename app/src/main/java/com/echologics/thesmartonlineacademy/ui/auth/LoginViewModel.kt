@@ -23,7 +23,8 @@ data class LoginUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
-    val loggedInUser: User? = null
+    val loggedInUser: User? = null,
+    val showDisabledDialog: Boolean = false
 )
 
 class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
@@ -67,6 +68,12 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
                     result.fold(
                         onSuccess = { user ->
+
+                            if (user.disabled == true) {
+                                authRepository.logOut()
+                                _uiState.value = LoginUiState(showDisabledDialog = true)
+                                return@fold
+                            }
 
                             viewModelScope.launch {
                                 try {
@@ -142,6 +149,10 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
                 }
             )
         }
+    }
+
+    fun dismissDisabledDialog() {
+        _uiState.value = _uiState.value.copy(showDisabledDialog = false)
     }
 
     fun clearError() {

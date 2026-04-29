@@ -6,5 +6,6 @@ data class User(
     val uid: String = "",
     val email: String = "",
     val role: UserRole = UserRole.STUDENT,
-    val onboardingComplete: Boolean = false
+    val onboardingComplete: Boolean = false,
+    val disabled: Boolean? = false,
 )

@@ -522,7 +522,7 @@ private fun UsersTab(uiState: AdminUiState, viewModel: AdminDashboardViewModel) 
             AdminUserCard(
                 user = user,
                 isProcessing = uiState.actionLoading == user.uid,
-                onDisable = { viewModel.disableUser(user.uid) }
+                onDisable = { viewModel.toggleUserStatus(user) }
             )
         }
     }
@@ -535,6 +535,9 @@ private fun AdminUserCard(user: User, isProcessing: Boolean, onDisable: () -> Un
         "ADMIN" -> MaterialTheme.colorScheme.error
         else -> Teal
     }
+
+    val isDisabled = user.disabled == true
+
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -556,6 +559,15 @@ private fun AdminUserCard(user: User, isProcessing: Boolean, onDisable: () -> Un
                     if (user.onboardingComplete) {
                         Text("Onboarded", fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
                     }
+                    if (user.disabled == true) {
+                        Text(
+                            "Disabled",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
                 }
             }
             if (user.role.name != "ADMIN") {
@@ -564,9 +576,14 @@ private fun AdminUserCard(user: User, isProcessing: Boolean, onDisable: () -> Un
                 } else {
                     TextButton(
                         onClick = onDisable,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = if (isDisabled) Teal else MaterialTheme.colorScheme.error
+                        )
                     ) {
-                        Text("Disable", fontSize = 12.sp)
+                        Text(
+                            if (isDisabled) "Enable" else "Disable",
+                            fontSize = 12.sp
+                        )
                     }
                 }
             }
