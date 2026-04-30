@@ -8,7 +8,8 @@ data class AdminStats(
     val confirmedBookings: Int = 0,
     val pendingPayments: Int = 0,
     val completedSessions: Int = 0,
-    val totalRevenue: String = "0"
+    val totalRevenue: Int = 0,
+    val totalPlatformFee: Int = 0
 )
 
 data class AdminQrConfig(

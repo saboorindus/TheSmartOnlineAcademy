@@ -8,9 +8,12 @@ data class Withdrawal(
     val currency: String = "PKR",
     val status: WithdrawalStatus = WithdrawalStatus.PENDING,
     val requestedAt: Long = System.currentTimeMillis(),
-    val paidAt: Long = 0L,
+    val processedAt: Long = 0L,     // ✅ renamed
     val adminNote: String = "",
-) {
+    val transactionId: String = "", // ✅ added
+    val method: String = ""         // ✅ optional
+)
+ {
     fun displayAmount(): String = "$currency $amount"
 }
 

@@ -35,3 +35,9 @@ data class TeacherProfile(
 
     fun totalDisplayFor(durationMinutes: Int): String = "$currency ${totalFor(durationMinutes)}"
 }
+
+data class TeacherWallet(
+    val totalEarnings: Int = 0,      // lifetime earnings
+    val availableBalance: Int = 0,   // can withdraw
+    val withdrawn: Int = 0           // already paid out
+)
