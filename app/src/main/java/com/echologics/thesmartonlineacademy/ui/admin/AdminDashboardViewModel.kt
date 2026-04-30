@@ -5,15 +5,25 @@ import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.AdminStats
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
+import com.echologics.thesmartonlineacademy.data.model.PlatformConfig
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
+import com.echologics.thesmartonlineacademy.data.model.Withdrawal
 import com.echologics.thesmartonlineacademy.data.repository.AdminRepository
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
+import com.echologics.thesmartonlineacademy.data.repository.WithdrawalRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.getOrDefault
+
+
+enum class PaymentSettingUIState {
+    SETTINGS,
+    WITHDRAWALS,
+    EARNINGS
+}
 
 // ── Shared admin state ────────────────────────────────────────────────────────
 
@@ -24,15 +34,20 @@ data class AdminUiState(
     val allBookings: List<Booking> = emptyList(),
     val allUsers: List<User> = emptyList(),
     val selectedTab: AdminTab = AdminTab.DASHBOARD,
+    val isSaving: Boolean = false,
     val isLoading: Boolean = true,
-    val actionLoading: String? = null, // uid/bookingId currently processing
+    val actionLoading: String? = null,
     val error: String? = null,
     val successMessage: String? = null,
+    val isSaved: Boolean = false,
     val showRejectDialog: Boolean = false,
     val rejectTargetUid: String = "",
     val rejectReason: String = "",
     val bookingFilter: BookingStatus? = null,
-    val confirmingBookingId: String? = null
+    val confirmingBookingId: String? = null,
+    val withdrawal: List<Withdrawal> = emptyList(),
+    val platformConfig: PlatformConfig = PlatformConfig(),
+    val paymentSettingUIState: PaymentSettingUIState = PaymentSettingUIState.SETTINGS
 )
 
 enum class AdminTab(val label: String) {
@@ -40,12 +55,14 @@ enum class AdminTab(val label: String) {
     APPROVALS("Approvals"),
     BOOKINGS("Bookings"),
     USERS("Users"),
-    QR("QR Setup")
+    QR("QR Setup"),
+    PAYMENT("Payment Settings")
 }
 
 class AdminDashboardViewModel(
     val repo: AdminRepository,
-    private val bookingRepository: BookingRepository
+    private val bookingRepository: BookingRepository,
+    private val withdrawalRepository: WithdrawalRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AdminUiState())
@@ -71,13 +88,17 @@ class AdminDashboardViewModel(
             val allTeachers = repo.getAllTeachers().getOrDefault(emptyList())
             val allBookings = repo.getAllBookings().getOrDefault(emptyList())
             val allUsers = repo.getAllUsers().getOrDefault(emptyList())
+            val platformConfig = withdrawalRepository.getPlatformConfig().getOrDefault(PlatformConfig())
+            val withdrawals = withdrawalRepository.getAllWithdrawals().getOrDefault(emptyList())
             _uiState.value = _uiState.value.copy(
                 stats = stats,
                 pendingTeachers = pending,
                 allTeachers = allTeachers,
                 allBookings = allBookings,
                 allUsers = allUsers,
-                isLoading = false
+                platformConfig = platformConfig,
+                isLoading = false,
+                withdrawal = withdrawals
             )
         }
     }
@@ -100,6 +121,37 @@ class AdminDashboardViewModel(
                     _uiState.value = _uiState.value.copy(
                         actionLoading = null,
                         error = e.message
+                    )
+                }
+            )
+        }
+    }
+
+
+    fun setPlatformConfig(platformConfig: PlatformConfig) {
+
+        _uiState.value = _uiState.value.copy(
+            platformConfig = platformConfig,
+            isSaving = true,
+            error = null
+        )
+
+        viewModelScope.launch {
+            val result = withdrawalRepository.savePlatformConfig(platformConfig)
+            result.fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(
+                        successMessage = "Platform config updated",
+                        isSaving = false,
+                        isSaved = true
+                    )
+                    loadAll()
+                },
+                onFailure = { e ->
+                    _uiState.value = _uiState.value.copy(
+                        error = e.message,
+                        isSaving = false,
+                        isSaved = false
                     )
                 }
             )

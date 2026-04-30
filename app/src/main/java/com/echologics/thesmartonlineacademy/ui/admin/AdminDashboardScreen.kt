@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -23,6 +25,8 @@ import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
+import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
+import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
 import com.echologics.thesmartonlineacademy.ui.common.theme.Amber
 import com.echologics.thesmartonlineacademy.ui.common.theme.AmberLight
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
@@ -150,6 +154,7 @@ fun AdminDashboardScreen(viewModel: AdminDashboardViewModel) {
                 AdminTab.BOOKINGS -> BookingsTab(uiState, viewModel)
                 AdminTab.USERS -> UsersTab(uiState, viewModel)
                 AdminTab.QR -> QrTab(viewModel)
+                AdminTab.PAYMENT -> PaymentsConfig(uiState,viewModel)
             }
         }
     }
@@ -604,4 +609,127 @@ private fun QrTab(viewModel: AdminDashboardViewModel) {
         }
     }
     AdminQrUploadSection(factory = factory)
+}
+
+
+// ── Payment Setting Tab ────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PaymentsConfig(
+    uiState: AdminUiState,
+    viewModel: AdminDashboardViewModel,
+
+) {
+    // Local state for editing
+    var minWithdrawal by remember(uiState.platformConfig.minimumWithdrawal) {
+        mutableStateOf(uiState.platformConfig.minimumWithdrawal.toString())
+    }
+
+    var feePercent by remember(uiState.platformConfig.platformFeePercent) {
+        mutableStateOf(uiState.platformConfig.platformFeePercent.toString())
+    }
+
+    Column {
+
+        // ---- Chips (unchanged) ----
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item {
+                FilterChip(
+                    label = { Text("Settings") },
+                    onClick = {},
+                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.SETTINGS
+                )
+            }
+
+            item {
+                FilterChip(
+                    label = { Text("Withdrawals") },
+                    onClick = {},
+                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.WITHDRAWALS
+                )
+            }
+
+            item {
+                FilterChip(
+                    label = { Text("Earnings") },
+                    onClick = {},
+                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.EARNINGS
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            if (uiState.isLoading) {
+                CircularProgressIndicator(color = Purple, modifier = Modifier.align(Alignment.CenterHorizontally))
+                return
+            }
+
+            // ---- Minimum Withdrawal ----
+            AppTextField(
+                value = minWithdrawal,
+                label = "Minimum Withdrawal",
+                onValueChange = { minWithdrawal = it }
+            )
+
+            // ---- Platform Fee ----
+            AppTextField(
+                value = feePercent,
+                label = "Platform Fee (%)",
+                onValueChange = { feePercent = it }
+            )
+
+
+            PrimaryButton(
+                text = if (uiState.isSaving) "Saving..." else "Save",
+                onClick = {
+                    val min = minWithdrawal.toIntOrNull()
+                    val fee = feePercent.toIntOrNull()
+
+                    if (min != null && fee != null) {
+                        viewModel.setPlatformConfig(
+                            uiState.platformConfig.copy(
+                                minimumWithdrawal = min,
+                                platformFeePercent = fee
+                            )
+                        )
+                    } else {
+                        // optional: show error
+//                        viewModel.set("Invalid input")
+                    }
+                },
+            )
+
+            uiState.error?.let { err ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(err, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp), fontSize = 13.sp)
+                }
+            }
+
+            if (uiState.isSaved) {
+                Spacer(Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = TealLight),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("QR configuration saved successfully", color = Teal, modifier = Modifier.padding(12.dp), fontSize = 13.sp)
+                }
+            }
+
+        }
+    }
 }

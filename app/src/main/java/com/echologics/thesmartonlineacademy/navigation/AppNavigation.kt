@@ -31,6 +31,7 @@ import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
 import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
 import com.echologics.thesmartonlineacademy.data.repository.TeacherRepository
+import com.echologics.thesmartonlineacademy.data.repository.WithdrawalRepository
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardScreen
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.auth.LoginScreen
@@ -126,13 +127,15 @@ fun AppNavigation(
     val bookingRepository = remember { BookingRepository(context) }
     val reviewRepository = remember { ReviewRepository() }
     val teacherRepository = remember { TeacherRepository() }
+    val widrawalRepository = remember { WithdrawalRepository() }
     val factory = remember { AppViewModelFactory(
         authRepository,
         messageRepository,
         adminRepository,
         bookingRepository,
         reviewRepository,
-        teacherRepository
+        teacherRepository,
+        widrawalRepository
     ) }
 
     // Track current route for bottom nav highlighting
