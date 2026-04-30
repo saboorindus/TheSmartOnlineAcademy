@@ -13,10 +13,10 @@ data class Booking(
     val slotTime: String = "",
     val ratePerTenMin: Int = 0,
     val currency: String = "PKR",
-    val totalAmount: String = "",
+    val totalAmount: Int = 0,
     val platformFeePercent: Int = 0,
-    val platformFee: String = "",       // e.g. "PKR 150"
-    val teacherEarning: String = "",
+    val platformFee: Int = 0,       // e.g. "PKR 150"
+    val teacherEarning: Int = 0,
     val status: BookingStatus = BookingStatus.PENDING_PAYMENT,
     val paymentTransactionId: String = "",
     val paymentSenderName: String = "",

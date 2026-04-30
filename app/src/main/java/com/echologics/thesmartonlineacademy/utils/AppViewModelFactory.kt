@@ -65,7 +65,7 @@ class AppViewModelFactory(
                 TeacherProfileViewModel(teacherRepository, messagingRepository) as T
 
             modelClass.isAssignableFrom(BookingViewModel::class.java) ->
-                BookingViewModel(bookingRepository) as T
+                BookingViewModel(bookingRepository,withDrawalRepository) as T
 
             modelClass.isAssignableFrom(PaymentViewModel::class.java) ->
                 PaymentViewModel(bookingRepository) as T

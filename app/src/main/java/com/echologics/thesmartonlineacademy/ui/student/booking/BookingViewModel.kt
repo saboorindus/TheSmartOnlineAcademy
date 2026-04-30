@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
+import com.echologics.thesmartonlineacademy.data.repository.WithdrawalRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +13,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+
+data class PaymentBreakdown(
+    val totalAmount: Int,
+    val platformFee: Int,
+    val teacherEarnings: Int
+)
 
 data class BookingUiState(
     val teacher: TeacherProfile? = null,
@@ -22,6 +29,10 @@ data class BookingUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val createdBooking: Booking? = null,
+    val platformFee: Int = 0,
+    val platformFeePercent: Int = 0,
+    val teacherEarning: Int = 0,
+
 
     val durationMinutes: Int = 60,
 ) {
@@ -49,12 +60,55 @@ data class BookingUiState(
     val sliderPosition: Float get() = ((durationMinutes / 10) - 1).toFloat()
 }
 
+fun calculatePayment(
+    amount: Int,
+    platformFeePercent: Int
+): PaymentBreakdown {
+
+    val fee = (amount * platformFeePercent) / 100
+    val teacher = amount - fee
+
+    return PaymentBreakdown(
+        totalAmount = amount,
+        platformFee = fee,
+        teacherEarnings = teacher
+    )
+}
+
+
 class BookingViewModel(
-    private val bookingRepository: BookingRepository
+    private val bookingRepository: BookingRepository,
+    private val withdrawalRepository: WithdrawalRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BookingUiState())
     val uiState: StateFlow<BookingUiState> = _uiState.asStateFlow()
+
+
+    init {
+        getPlatformConfig()
+    }
+
+    private fun getPlatformConfig() {
+        viewModelScope.launch {
+            val config = withdrawalRepository.getPlatformConfig()
+            config.fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(
+                        platformFeePercent = it.platformFeePercent,
+                    )
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(error = it.message)
+                }
+            )
+        }
+    }
+
+//    fun canWithdraw(amount: Int, minWithdrawal: Int): Boolean {
+//        return amount >= minWithdrawal
+//    }
+
 
     fun setTeacher(teacher: TeacherProfile) {
         _uiState.value = _uiState.value.copy(
@@ -107,7 +161,13 @@ class BookingViewModel(
             return
         }
 
-        _uiState.value = state.copy(isLoading = true, error = null)
+        val breakdown = calculatePayment(state.totalAmount, state.platformFeePercent)
+        _uiState.value = state.copy(
+            platformFee = breakdown.platformFee,
+            teacherEarning = breakdown.teacherEarnings,
+            isLoading = true,
+            error = null
+        )
 
         viewModelScope.launch {
             // Get student name from Firestore
@@ -126,7 +186,10 @@ class BookingViewModel(
                 slotTime = state.selectedTimeSlot,
                 ratePerTenMin = teacher.ratePerTenMin,
                 currency = teacher.currency,
-                totalAmount = state.totalDisplay
+                totalAmount = state.totalAmount,
+                platformFeePercent = state.platformFeePercent,
+                platformFee = breakdown.platformFee,
+                teacherEarning = breakdown.teacherEarnings
             )
             val result = bookingRepository.createBooking(booking)
             result.fold(

@@ -58,7 +58,7 @@ class AdminRepository(private val context: Context) {
             val totalRevenue = allBookings
                 .filter { it.status == BookingStatus.COMPLETED }
                 .sumOf { booking ->
-                    booking.totalAmount.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
+                    booking.totalAmount
                 }
 
             val stats = AdminStats(

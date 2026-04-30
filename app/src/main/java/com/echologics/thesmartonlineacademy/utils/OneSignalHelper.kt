@@ -108,7 +108,7 @@ object OneSignalHelper {
     fun bookingRequestPayload(studentName: String, subject: String) =
         Pair("New booking request", "$studentName wants to book a $subject session with you.")
 
-    fun paymentSubmittedPayload(studentName: String, amount: String) =
+    fun paymentSubmittedPayload(studentName: String, amount: Int) =
         Pair("Payment submitted", "$studentName has submitted payment of $amount. Please verify and confirm.")
 
     fun paymentConfirmedPayload(teacherName: String, subject: String) =

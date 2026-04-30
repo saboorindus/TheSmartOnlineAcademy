@@ -469,7 +469,7 @@ private fun PaymentSuccessScreen(onGoHome: () -> Unit) {
                     SuccessRow("Teacher", it.teacherName)
                     SuccessRow("Subject", it.subject)
                     SuccessRow("Session", it.sessionLength)
-                    SuccessRow("Amount", it.totalAmount)
+                    SuccessRow("Amount", it.totalAmount.toString())
                     SuccessRow("Txn ID", it.paymentTransactionId)
                 }
             }

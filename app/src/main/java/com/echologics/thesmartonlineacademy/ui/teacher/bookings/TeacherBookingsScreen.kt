@@ -171,7 +171,7 @@ private fun BookingCard(
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoChip("Day", "${booking.slotDay} ${booking.slotTime}")
                 if (booking.scheduledDate.isNotBlank()) InfoChip("Date", booking.scheduledDate)
-                InfoChip("Amount", booking.totalAmount)
+                InfoChip("Amount", booking.totalAmount.toString())
             }
 
             // Payment proof (only if submitted)

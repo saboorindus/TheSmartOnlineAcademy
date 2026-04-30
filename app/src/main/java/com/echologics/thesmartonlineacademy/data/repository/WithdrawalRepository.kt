@@ -171,7 +171,7 @@ class WithdrawalRepository(private val context: Context? = null) {
             // Total earned = sum of teacherEarning across all confirmed/completed bookings
             val currency = bookings.firstOrNull()?.currency ?: "PKR"
             val totalEarned = bookings.sumOf { booking ->
-                booking.teacherEarning.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
+                booking.teacherEarning
             }
 
             // Total withdrawn = sum of PAID withdrawals

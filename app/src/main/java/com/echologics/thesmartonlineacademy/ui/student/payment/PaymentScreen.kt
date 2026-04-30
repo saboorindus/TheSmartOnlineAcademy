@@ -110,7 +110,7 @@ fun PaymentScreen(
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Total due", fontWeight = FontWeight.SemiBold, color = Purple)
-                        Text(booking.totalAmount, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = Purple)
+                        Text(booking.totalAmount.toString(), fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = Purple)
                     }
                 }
             }
@@ -199,7 +199,7 @@ fun PaymentScreen(
                         Spacer(Modifier.height(4.dp))
                         Text("Send exactly", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
                         Text(
-                            booking.totalAmount,
+                            booking.totalAmount.toString(),
                             fontSize = 22.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = qrAccent,

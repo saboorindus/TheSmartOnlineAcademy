@@ -96,7 +96,7 @@ class BookingRepository(private val context: Context) {
         bookingId: String,
         transactionId: String,
         senderName: String,
-        amount: String,
+        amount: Int,
         paymentMethod: String
     ): Result<Unit> {
         return try {

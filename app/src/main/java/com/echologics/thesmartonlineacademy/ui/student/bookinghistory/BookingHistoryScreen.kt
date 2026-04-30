@@ -229,7 +229,7 @@ private fun StudentBookingCard(
                 if (booking.scheduledDate.isNotBlank()) {
                     InfoItem("Date", booking.scheduledDate)
                 }
-                InfoItem("Amount", booking.totalAmount)
+                InfoItem("Amount", booking.totalAmount.toString())
             }
 
             // Payment pending instructions
