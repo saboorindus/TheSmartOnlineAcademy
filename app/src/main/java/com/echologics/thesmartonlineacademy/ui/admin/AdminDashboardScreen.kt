@@ -177,7 +177,7 @@ private fun DashboardTab(uiState: AdminUiState) {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatCard("Bookings", uiState.stats.totalBookings.toString(), Icons.Default.CalendarMonth, Amber, modifier = Modifier.weight(1f))
-                    StatCard("Revenue", uiState.stats.totalRevenue, Icons.Default.Payments, Color(0xFF639922), modifier = Modifier.weight(1f))
+                    StatCard("Revenue", uiState.stats.totalRevenue.toString(), Icons.Default.Payments, Color(0xFF639922), modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatCard("Completed", uiState.stats.completedSessions.toString(), Icons.Default.CheckCircle, Teal, modifier = Modifier.weight(1f))

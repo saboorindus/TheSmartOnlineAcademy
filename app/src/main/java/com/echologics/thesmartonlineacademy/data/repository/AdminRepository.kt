@@ -69,7 +69,7 @@ class AdminRepository(private val context: Context) {
                 confirmedBookings = confirmedBookings,
                 pendingPayments = pendingPayments,
                 completedSessions = completedSessions,
-                totalRevenue = "PKR $totalRevenue"
+                totalRevenue = totalRevenue
             )
             Result.success(stats)
         } catch (e: Exception) {

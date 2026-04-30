@@ -64,6 +64,8 @@ import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherPro
 import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherProfileViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsScreen
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsViewModel
+import com.echologics.thesmartonlineacademy.ui.teacher.earnings.TeacherEarningsScreen
+import com.echologics.thesmartonlineacademy.ui.teacher.earnings.TeacherEarningsViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditScreen
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditViewModel
 import com.echologics.thesmartonlineacademy.utils.AppViewModelFactory
@@ -96,6 +98,7 @@ sealed class Screen(val route: String) {
     object Review : Screen("review")
     object BookingHistory : Screen("student_bookings")
     object TeacherProfileEdit : Screen("teacher_profile_edit")
+    object TeacherEarnings : Screen("teacher_earnings")
     object AdminPanel : Screen("admin_panel")
     object Session : Screen("session/{role}") {
         fun createRoute(role: String) = "session/$role"
@@ -239,6 +242,20 @@ fun AppNavigation(
                 )
             }
         }
+
+        composable(Screen.TeacherEarnings.route) {
+            TeacherBottomNav(
+                navController = navController,
+                currentRoute = currentRoute ?: Screen.TeacherEarnings.route
+            ) {
+                val vm: TeacherEarningsViewModel = viewModel(factory = factory)
+                TeacherEarningsScreen(
+                    viewModel = vm,
+                    onWithdrawClick = {}
+                )
+            }
+        }
+
 
         // ── Student tabs (wrapped in StudentBottomNav) ────────────────────────
 
