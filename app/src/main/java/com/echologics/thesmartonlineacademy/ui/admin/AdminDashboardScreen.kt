@@ -27,6 +27,7 @@ import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
+import com.echologics.thesmartonlineacademy.ui.common.components.WithdrawalCard
 import com.echologics.thesmartonlineacademy.ui.common.theme.Amber
 import com.echologics.thesmartonlineacademy.ui.common.theme.AmberLight
 import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
@@ -618,9 +619,8 @@ private fun QrTab(viewModel: AdminDashboardViewModel) {
 private fun PaymentsConfig(
     uiState: AdminUiState,
     viewModel: AdminDashboardViewModel,
-
 ) {
-    // Local state for editing
+
     var minWithdrawal by remember(uiState.platformConfig.minimumWithdrawal) {
         mutableStateOf(uiState.platformConfig.minimumWithdrawal.toString())
     }
@@ -629,107 +629,156 @@ private fun PaymentsConfig(
         mutableStateOf(uiState.platformConfig.platformFeePercent.toString())
     }
 
-    Column {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
 
-        // ---- Chips (unchanged) ----
+        // ── TOP CHIPS ─────────────────────────────
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+
             item {
                 FilterChip(
                     label = { Text("Settings") },
-                    onClick = {},
-                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.SETTINGS
+                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.SETTINGS,
+                    onClick = {
+                        viewModel.setPaymentUIState(PaymentSettingUIState.SETTINGS)
+                    }
                 )
             }
 
             item {
                 FilterChip(
                     label = { Text("Withdrawals") },
-                    onClick = {},
-                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.WITHDRAWALS
+                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.WITHDRAWALS,
+                    onClick = {
+                        viewModel.setPaymentUIState(PaymentSettingUIState.WITHDRAWALS)
+                    }
                 )
             }
 
             item {
                 FilterChip(
                     label = { Text("Earnings") },
-                    onClick = {},
-                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.EARNINGS
+                    selected = uiState.paymentSettingUIState == PaymentSettingUIState.EARNINGS,
+                    onClick = {
+                        viewModel.setPaymentUIState(PaymentSettingUIState.EARNINGS)
+                    }
                 )
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Spacer(Modifier.height(8.dp))
 
-            if (uiState.isLoading) {
-                CircularProgressIndicator(color = Purple, modifier = Modifier.align(Alignment.CenterHorizontally))
-                return
-            }
+        // ── CONTENT SWITCH ───────────────────────
+        when (uiState.paymentSettingUIState) {
 
-            // ---- Minimum Withdrawal ----
-            AppTextField(
-                value = minWithdrawal,
-                label = "Minimum Withdrawal",
-                onValueChange = { minWithdrawal = it }
-            )
+            // ── SETTINGS TAB ─────────────────────
+            PaymentSettingUIState.SETTINGS -> {
 
-            // ---- Platform Fee ----
-            AppTextField(
-                value = feePercent,
-                label = "Platform Fee (%)",
-                onValueChange = { feePercent = it }
-            )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
 
+                    AppTextField(
+                        value = minWithdrawal,
+                        label = "Minimum Withdrawal",
+                        onValueChange = { minWithdrawal = it }
+                    )
 
-            PrimaryButton(
-                text = if (uiState.isSaving) "Saving..." else "Save",
-                onClick = {
-                    val min = minWithdrawal.toIntOrNull()
-                    val fee = feePercent.toIntOrNull()
+                    AppTextField(
+                        value = feePercent,
+                        label = "Platform Fee (%)",
+                        onValueChange = { feePercent = it }
+                    )
 
-                    if (min != null && fee != null) {
-                        viewModel.setPlatformConfig(
-                            uiState.platformConfig.copy(
-                                minimumWithdrawal = min,
-                                platformFeePercent = fee
+                    PrimaryButton(
+                        text = if (uiState.isSaving) "Saving..." else "Save Settings",
+                        onClick = {
+                            val min = minWithdrawal.toIntOrNull()
+                            val fee = feePercent.toIntOrNull()
+
+                            if (min != null && fee != null) {
+                                viewModel.setPlatformConfig(
+                                    uiState.platformConfig.copy(
+                                        minimumWithdrawal = min,
+                                        platformFeePercent = fee
+                                    )
+                                )
+                            }
+                        }
+                    )
+
+                    uiState.successMessage?.let {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = TealLight),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                it,
+                                color = Teal,
+                                modifier = Modifier.padding(12.dp)
                             )
-                        )
-                    } else {
-                        // optional: show error
-//                        viewModel.set("Invalid input")
+                        }
                     }
-                },
-            )
 
-            uiState.error?.let { err ->
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(err, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp), fontSize = 13.sp)
+                    uiState.error?.let {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                it,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
                 }
             }
 
-            if (uiState.isSaved) {
-                Spacer(Modifier.height(10.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = TealLight),
-                    shape = RoundedCornerShape(8.dp)
+            // ── WITHDRAWALS TAB ───────────────────
+            PaymentSettingUIState.WITHDRAWALS -> {
+
+                val withdrawals = uiState.withdrawal
+
+                if (withdrawals.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No withdrawals yet")
+                    }
+                    return
+                }
+
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("QR configuration saved successfully", color = Teal, modifier = Modifier.padding(12.dp), fontSize = 13.sp)
+                    items(withdrawals, key = { it.id }) { w ->
+                        WithdrawalCard(w, viewModel)
+                    }
                 }
             }
 
+            // ── EARNINGS TAB ──────────────────────
+            PaymentSettingUIState.EARNINGS -> {
+
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Earnings dashboard coming soon")
+                }
+            }
         }
     }
 }
+

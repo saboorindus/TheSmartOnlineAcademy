@@ -197,6 +197,69 @@ class AdminDashboardViewModel(
         )
     }
 
+    fun setPaymentUIState(state: PaymentSettingUIState) {
+        _uiState.value = _uiState.value.copy(paymentSettingUIState = state)
+    }
+
+    fun markWithdrawalPaid(withdrawal: Withdrawal) {
+        _uiState.value = _uiState.value.copy(actionLoading = withdrawal.id)
+
+        viewModelScope.launch {
+            val result = withdrawalRepository.markWithdrawalPaid(
+                withdrawalId = withdrawal.id,
+                teacherId = withdrawal.teacherId,
+                amount = withdrawal.amount,
+                currency = withdrawal.currency
+            )
+
+            result.fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(
+                        actionLoading = null,
+                        successMessage = "Marked as paid"
+                    )
+                    loadAll()
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(
+                        actionLoading = null,
+                        error = it.message
+                    )
+                }
+            )
+        }
+    }
+
+    fun rejectWithdrawal(withdrawalId: String) {
+        _uiState.value = _uiState.value.copy(actionLoading = withdrawalId)
+
+        viewModelScope.launch {
+            val result = withdrawalRepository.rejectWithdrawal(
+                withdrawalId,
+                "Rejected by admin"
+            )
+
+            result.fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(
+                        actionLoading = null,
+                        successMessage = "Withdrawal rejected"
+                    )
+                    loadAll()
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(
+                        actionLoading = null,
+                        error = it.message
+                    )
+                }
+            )
+        }
+    }
+
+
+
+
     fun confirmReject() {
         val uid = _uiState.value.rejectTargetUid
         val reason = _uiState.value.rejectReason.ifBlank { "Profile does not meet our requirements" }

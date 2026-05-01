@@ -8,6 +8,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,6 +35,12 @@ import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
 import com.echologics.thesmartonlineacademy.R
 import androidx.core.net.toUri
+import com.echologics.thesmartonlineacademy.data.model.Withdrawal
+import com.echologics.thesmartonlineacademy.data.model.WithdrawalStatus
+import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
+import com.echologics.thesmartonlineacademy.ui.admin.AdminUiState
+import com.echologics.thesmartonlineacademy.ui.common.theme.Amber
+import com.echologics.thesmartonlineacademy.ui.common.theme.Teal
 
 
 @Composable
@@ -247,6 +255,125 @@ fun DisabledAccountDialog(onDismiss: () -> Unit) {
         }
     )
 }
+
+
+@Composable
+fun WithdrawalsSection(
+    uiState: AdminUiState,
+    viewModel: AdminDashboardViewModel
+) {
+    val withdrawals = uiState.withdrawal
+
+    if (withdrawals.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No withdrawals yet", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+        }
+        return
+    }
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(withdrawals, key = { it.id }) { w ->
+            WithdrawalCard(w, viewModel)
+        }
+    }
+}
+
+
+@Composable
+fun WithdrawalCard(
+    withdrawal: Withdrawal,
+    viewModel: AdminDashboardViewModel
+) {
+    val statusColor = when (withdrawal.status) {
+        WithdrawalStatus.PENDING -> Amber
+        WithdrawalStatus.PAID -> Teal
+        WithdrawalStatus.REJECTED -> MaterialTheme.colorScheme.error
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Column(Modifier.padding(12.dp)) {
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(withdrawal.teacherName, fontWeight = FontWeight.Medium)
+                    Text("ID: ${withdrawal.teacherId}", fontSize = 11.sp)
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = statusColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        withdrawal.status.name,
+                        color = statusColor,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                "Amount: ${withdrawal.displayAmount()}",
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (withdrawal.method.isNotBlank()) {
+                Text("Method: ${withdrawal.method}", fontSize = 12.sp)
+            }
+
+            if (withdrawal.transactionId.isNotBlank()) {
+                Text("Txn: ${withdrawal.transactionId}", fontSize = 12.sp)
+            }
+
+            if (withdrawal.adminNote.isNotBlank()) {
+                Text("Note: ${withdrawal.adminNote}", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+            }
+
+            // ACTIONS
+            if (withdrawal.status == WithdrawalStatus.PENDING) {
+                Spacer(Modifier.height(10.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                    Button(
+                        onClick = {
+                            viewModel.markWithdrawalPaid(withdrawal)
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Teal)
+                    ) {
+                        Text("Mark Paid", fontSize = 12.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.rejectWithdrawal(withdrawal.id)
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Reject", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
 
 @Composable
 fun AppTextField(
