@@ -1,7 +1,6 @@
 package com.echologics.thesmartonlineacademy.data.repository
 
 import android.content.Context
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.echologics.thesmartonlineacademy.data.model.PlatformConfig
@@ -171,7 +170,7 @@ class WithdrawalRepository(private val context: Context? = null) {
             // Total earned = sum of teacherEarning across all confirmed/completed bookings
             val currency = bookings.firstOrNull()?.currency ?: "PKR"
             val totalEarned = bookings.sumOf { booking ->
-                booking.teacherEarning
+                booking.teacherNetEarning
             }
 
             // Total withdrawn = sum of PAID withdrawals

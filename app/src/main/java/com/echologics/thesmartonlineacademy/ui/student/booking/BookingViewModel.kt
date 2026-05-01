@@ -187,9 +187,9 @@ class BookingViewModel(
                 ratePerTenMin = teacher.ratePerTenMin,
                 currency = teacher.currency,
                 totalAmount = state.totalAmount,
-                platformFeePercent = state.platformFeePercent,
-                platformFee = breakdown.platformFee,
-                teacherEarning = breakdown.teacherEarnings
+                platformFeePercentAtBooking = state.platformFeePercent,
+                platformFeeAmount = breakdown.platformFee,
+                teacherNetEarning = breakdown.teacherEarnings
             )
             val result = bookingRepository.createBooking(booking)
             result.fold(

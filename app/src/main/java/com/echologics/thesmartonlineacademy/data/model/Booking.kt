@@ -14,9 +14,9 @@ data class Booking(
     val ratePerTenMin: Int = 0,
     val currency: String = "PKR",
     val totalAmount: Int = 0,
-    val platformFeePercent: Int = 0,
-    val platformFee: Int = 0,       // e.g. "PKR 150"
-    val teacherEarning: Int = 0,
+    val platformFeePercentAtBooking: Int = 0,
+    val platformFeeAmount: Int = 0,       // e.g. "PKR 150"
+    val teacherNetEarning: Int = 0,
     val status: BookingStatus = BookingStatus.PENDING_PAYMENT,
     val paymentTransactionId: String = "",
     val paymentSenderName: String = "",

@@ -9,6 +9,7 @@ import com.echologics.thesmartonlineacademy.data.model.PlatformConfig
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.echologics.thesmartonlineacademy.data.model.Withdrawal
+import com.echologics.thesmartonlineacademy.data.model.WithdrawalStatus
 import com.echologics.thesmartonlineacademy.data.repository.AdminRepository
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.echologics.thesmartonlineacademy.data.repository.WithdrawalRepository
@@ -47,7 +48,14 @@ data class AdminUiState(
     val confirmingBookingId: String? = null,
     val withdrawal: List<Withdrawal> = emptyList(),
     val platformConfig: PlatformConfig = PlatformConfig(),
-    val paymentSettingUIState: PaymentSettingUIState = PaymentSettingUIState.SETTINGS
+    val paymentSettingUIState: PaymentSettingUIState = PaymentSettingUIState.SETTINGS,
+    val totalRevenue: Int = 0,
+    val platformEarnings: Int = 0,
+    val teacherPayouts: Int = 0,
+    val pendingPayouts: Int = 0,
+    val todayRevenue: Int = 0,
+    val weeklyRevenue: Int = 0,
+    val monthlyRevenue: Int = 0
 )
 
 enum class AdminTab(val label: String) {
@@ -90,6 +98,12 @@ class AdminDashboardViewModel(
             val allUsers = repo.getAllUsers().getOrDefault(emptyList())
             val platformConfig = withdrawalRepository.getPlatformConfig().getOrDefault(PlatformConfig())
             val withdrawals = withdrawalRepository.getAllWithdrawals().getOrDefault(emptyList())
+
+            calculateEarnings(
+                bookings = allBookings,
+                withdrawals = withdrawals,
+            )
+
             _uiState.value = _uiState.value.copy(
                 stats = stats,
                 pendingTeachers = pending,
@@ -127,6 +141,35 @@ class AdminDashboardViewModel(
             )
         }
     }
+
+
+    private fun calculateEarnings(
+        bookings: List<Booking>,
+        withdrawals: List<Withdrawal>
+    ) {
+        val completed = bookings.filter {
+            it.status == BookingStatus.COMPLETED
+        }
+
+        val totalRevenue = completed.sumOf { it.totalAmount }
+
+        val platformEarnings = completed.sumOf { it.platformFeeAmount }
+
+        val teacherPayouts = completed.sumOf { it.teacherNetEarning }
+
+        val pendingPayouts = withdrawals
+            .filter { it.status == WithdrawalStatus.PENDING }
+            .sumOf { it.amount }
+
+        _uiState.value = _uiState.value.copy(
+            totalRevenue = totalRevenue,
+            platformEarnings = platformEarnings,
+            teacherPayouts = teacherPayouts,
+            pendingPayouts = pendingPayouts
+        )
+    }
+
+
 
 
     fun setPlatformConfig(platformConfig: PlatformConfig) {

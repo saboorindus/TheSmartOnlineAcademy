@@ -682,55 +682,127 @@ private fun PaymentsConfig(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(20.dp),
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
 
-                    AppTextField(
-                        value = minWithdrawal,
-                        label = "Minimum Withdrawal",
-                        onValueChange = { minWithdrawal = it }
-                    )
-
-                    AppTextField(
-                        value = feePercent,
-                        label = "Platform Fee (%)",
-                        onValueChange = { feePercent = it }
-                    )
-
-                    PrimaryButton(
-                        text = if (uiState.isSaving) "Saving..." else "Save Settings",
-                        onClick = {
-                            val min = minWithdrawal.toIntOrNull()
-                            val fee = feePercent.toIntOrNull()
-
-                            if (min != null && fee != null) {
-                                viewModel.setPlatformConfig(
-                                    uiState.platformConfig.copy(
-                                        minimumWithdrawal = min,
-                                        platformFeePercent = fee
-                                    )
-                                )
-                            }
+                    // ── HEADER CARD ─────────────────────────────
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = PurpleLight),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text(
+                                "Payment Configuration",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                                color = Purple
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Control how teachers withdraw earnings and platform fee structure.",
+                                fontSize = 12.sp,
+                                color = Purple.copy(alpha = 0.7f)
+                            )
                         }
-                    )
+                    }
 
+                    // ── CURRENT CONFIG SUMMARY ───────────────────
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = androidx.compose.foundation.BorderStroke(
+                            0.5.dp,
+                            MaterialTheme.colorScheme.outline
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+
+                            Text(
+                                "Current Settings",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Text(
+                                "Minimum Withdrawal: ${uiState.platformConfig.minimumWithdrawal}",
+                                fontSize = 13.sp
+                            )
+
+                            Text(
+                                "Platform Fee: ${uiState.platformConfig.platformFeePercent}%",
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+
+                    // ── EDIT SECTION ─────────────────────────────
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = TealLight),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+
+                            Text(
+                                "Edit Settings",
+                                fontWeight = FontWeight.SemiBold,
+                                color = Teal
+                            )
+
+                            AppTextField(
+                                value = minWithdrawal,
+                                label = "Minimum Withdrawal (PKR)",
+                                onValueChange = { minWithdrawal = it }
+                            )
+
+                            AppTextField(
+                                value = feePercent,
+                                label = "Platform Fee (%)",
+                                onValueChange = { feePercent = it }
+                            )
+
+                            PrimaryButton(
+                                text = if (uiState.isSaving) "Saving..." else "Save Changes",
+                                onClick = {
+                                    val min = minWithdrawal.toIntOrNull()
+                                    val fee = feePercent.toIntOrNull()
+
+                                    if (min != null && fee != null) {
+                                        viewModel.setPlatformConfig(
+                                            uiState.platformConfig.copy(
+                                                minimumWithdrawal = min,
+                                                platformFeePercent = fee
+                                            )
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    // ── FEEDBACK ─────────────────────────────
                     uiState.successMessage?.let {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = TealLight),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                it,
-                                color = Teal,
-                                modifier = Modifier.padding(12.dp)
-                            )
+                            Text(it, color = Teal, modifier = Modifier.padding(12.dp))
                         }
                     }
 
                     uiState.error?.let {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
@@ -742,6 +814,7 @@ private fun PaymentsConfig(
                     }
                 }
             }
+
 
             // ── WITHDRAWALS TAB ───────────────────
             PaymentSettingUIState.WITHDRAWALS -> {
@@ -771,13 +844,122 @@ private fun PaymentsConfig(
             // ── EARNINGS TAB ──────────────────────
             PaymentSettingUIState.EARNINGS -> {
 
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Earnings dashboard coming soon")
+
+                    // ── HEADER ─────────────────────────────
+                    item {
+                        Text(
+                            "Earnings Overview",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    // ── SUMMARY GRID ───────────────────────
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                StatCard(
+                                    label = "Total Revenue",
+                                    value = uiState.totalRevenue.toString(),
+                                    icon = Icons.Default.Payments,
+                                    color = Purple,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                StatCard(
+                                    label = "Platform Earnings",
+                                    value = uiState.platformEarnings.toString(),
+                                    icon = Icons.Default.AccountBalance,
+                                    color = Teal,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                StatCard(
+                                    label = "Teacher Payouts",
+                                    value = uiState.teacherPayouts.toString(),
+                                    icon = Icons.Default.School,
+                                    color = Amber,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                StatCard(
+                                    label = "Pending",
+                                    value = uiState.pendingPayouts.toString(),
+                                    icon = Icons.Default.HourglassTop,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    // ── TIME FILTER INSIGHTS ───────────────
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+
+                                Text(
+                                    "Revenue Insights",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+
+                                Spacer(Modifier.height(10.dp))
+
+                                Text("Today: ${uiState.todayRevenue}")
+                                Text("This Week: ${uiState.weeklyRevenue}")
+                                Text("This Month: ${uiState.monthlyRevenue}")
+                            }
+                        }
+                    }
+
+                    // ── ACTION SECTION ─────────────────────
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = PurpleLight),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+
+                                Text(
+                                    "Payout Management",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Purple
+                                )
+
+                                Spacer(Modifier.height(6.dp))
+
+                                Text(
+                                    "Review teacher withdrawals and process pending payouts.",
+                                    fontSize = 12.sp,
+                                    color = Purple.copy(alpha = 0.7f)
+                                )
+
+                                Spacer(Modifier.height(10.dp))
+
+                                PrimaryButton(
+                                    text = "Go to Withdrawals",
+                                    onClick = {
+                                        viewModel.setPaymentUIState(PaymentSettingUIState.WITHDRAWALS)
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
+
         }
     }
 }

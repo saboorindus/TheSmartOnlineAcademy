@@ -10,7 +10,6 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,8 +27,6 @@ import com.echologics.thesmartonlineacademy.ui.common.theme.Purple
 import com.echologics.thesmartonlineacademy.ui.common.theme.PurpleLight
 import com.echologics.thesmartonlineacademy.ui.common.theme.Teal
 import com.echologics.thesmartonlineacademy.ui.common.theme.TealLight
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -261,13 +258,13 @@ private fun MetricCard(
 @Composable
 private fun EarningRow(booking: Booking) {
     val isCompleted = booking.status == BookingStatus.COMPLETED
-    val earning = if (booking.teacherEarning == 0) {
+    val earning = if (booking.teacherNetEarning == 0) {
         booking.totalAmount
     } else {
-        booking.teacherEarning
+        booking.teacherNetEarning
     }
-    val feeText = if (booking.platformFeePercent > 0)
-        " (after ${booking.platformFeePercent}% fee)" else ""
+    val feeText = if (booking.platformFeePercentAtBooking > 0)
+        " (after ${booking.platformFeePercentAtBooking}% fee)" else ""
 
     Card(
         modifier = Modifier.fillMaxWidth(),

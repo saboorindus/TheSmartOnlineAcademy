@@ -50,8 +50,8 @@ class SessionRepository {
                 val wallet = walletSnap.toObject(TeacherWallet::class.java) ?: TeacherWallet()
 
                 val updatedWallet = wallet.copy(
-                    totalEarnings = wallet.totalEarnings + booking.teacherEarning,
-                    availableBalance = wallet.availableBalance + booking.teacherEarning
+                    totalEarnings = wallet.totalEarnings + booking.teacherNetEarning,
+                    availableBalance = wallet.availableBalance + booking.teacherNetEarning
                 )
 
                 val adminRef = db.collection("adminStats").document("global")
@@ -62,7 +62,7 @@ class SessionRepository {
                     totalBookings = admin.totalBookings + 1,
                     completedSessions = admin.completedSessions + 1,
                     totalRevenue = admin.totalRevenue + booking.totalAmount,
-                    totalPlatformFee = admin.totalPlatformFee + booking.platformFee
+                    totalPlatformFee = admin.totalPlatformFee + booking.platformFeeAmount
                 )
 
 
