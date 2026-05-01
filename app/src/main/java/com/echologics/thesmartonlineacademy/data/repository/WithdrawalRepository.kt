@@ -73,6 +73,19 @@ class WithdrawalRepository(private val context: Context? = null) {
 
             withdrawalsCol.document(id).set(data).await()
 
+            val (currency,amount) = OneSignalHelper.withdrawalRequestedPayload(
+                currency = withdrawal.currency,
+                amount = withdrawal.amount
+            )
+
+            OneSignalHelper.sendToPlayer(
+                restApiKey = oneSignalRestKey ?: "",
+                appId = oneSignalAppId ?: "",
+                playerId = withdrawal.teacherId,
+                title = "Withdrawal request submitted",
+                body = "Your withdrawal of $currency $amount is under review"
+            )
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
