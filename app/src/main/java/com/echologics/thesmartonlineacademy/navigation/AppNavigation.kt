@@ -68,6 +68,8 @@ import com.echologics.thesmartonlineacademy.ui.teacher.earnings.TeacherEarningsS
 import com.echologics.thesmartonlineacademy.ui.teacher.earnings.TeacherEarningsViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditScreen
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditViewModel
+import com.echologics.thesmartonlineacademy.ui.teacher.withdrawal.TeacherWithdrawalScreen
+import com.echologics.thesmartonlineacademy.ui.teacher.withdrawal.TeacherWithdrawalViewModel
 import com.echologics.thesmartonlineacademy.utils.AppViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 
@@ -99,6 +101,7 @@ sealed class Screen(val route: String) {
     object BookingHistory : Screen("student_bookings")
     object TeacherProfileEdit : Screen("teacher_profile_edit")
     object TeacherEarnings : Screen("teacher_earnings")
+    object TeacherWithdrawal : Screen("teacher_withdrawal")
     object AdminPanel : Screen("admin_panel")
     object Session : Screen("session/{role}") {
         fun createRoute(role: String) = "session/$role"
@@ -251,7 +254,20 @@ fun AppNavigation(
                 val vm: TeacherEarningsViewModel = viewModel(factory = factory)
                 TeacherEarningsScreen(
                     viewModel = vm,
-                    onWithdrawClick = {}
+                    onWithdrawClick = { navController.navigate(Screen.TeacherWithdrawal.route) }
+                )
+            }
+        }
+
+        composable(Screen.TeacherWithdrawal.route) {
+            TeacherBottomNav(
+                navController = navController,
+                currentRoute = currentRoute ?: Screen.TeacherWithdrawal.route
+            ) {
+                val vm: TeacherWithdrawalViewModel = viewModel(factory = factory)
+                TeacherWithdrawalScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

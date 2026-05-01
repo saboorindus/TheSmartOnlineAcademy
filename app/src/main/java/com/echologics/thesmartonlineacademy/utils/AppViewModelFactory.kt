@@ -27,6 +27,7 @@ import com.echologics.thesmartonlineacademy.ui.student.teacherprofile.TeacherPro
 import com.echologics.thesmartonlineacademy.ui.teacher.bookings.TeacherBookingsViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.earnings.TeacherEarningsViewModel
 import com.echologics.thesmartonlineacademy.ui.teacher.profile.TeacherProfileEditViewModel
+import com.echologics.thesmartonlineacademy.ui.teacher.withdrawal.TeacherWithdrawalViewModel
 
 class AppViewModelFactory(
     private val authRepository: AuthRepository,
@@ -101,6 +102,10 @@ class AppViewModelFactory(
 
             modelClass.isAssignableFrom(TeacherEarningsViewModel::class.java) ->
                 TeacherEarningsViewModel(withDrawalRepository,bookingRepository) as T
+
+            modelClass.isAssignableFrom(TeacherWithdrawalViewModel::class.java) ->
+                TeacherWithdrawalViewModel(withDrawalRepository) as T
+
 
             else -> throw IllegalArgumentException(
                 "Unknown ViewModel class: ${modelClass.name}"

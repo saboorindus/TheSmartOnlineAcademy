@@ -38,7 +38,7 @@ fun TeacherBottomNav(
         BottomNavItem("Bookings", Icons.Default.Home, "teacher_home"),
         BottomNavItem("Messages", Icons.AutoMirrored.Filled.Chat, "teacher_messages"),
         BottomNavItem("Profile", Icons.Default.Person, "teacher_profile_edit"),
-        BottomNavItem("Earnings", Icons.Default.Person, "teacher_earnings")
+        BottomNavItem("Earnings", Icons.Default.Person, "teacher_earnings"),
     )
     AppBottomNavScaffold(navController, currentRoute, items, content)
 }

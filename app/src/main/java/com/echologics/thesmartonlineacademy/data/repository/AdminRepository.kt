@@ -11,6 +11,7 @@ import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.echologics.thesmartonlineacademy.utils.OneSignalHelper
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 import io.github.jan.supabase.storage.storage
 
@@ -195,7 +196,7 @@ class AdminRepository(private val context: Context) {
     suspend fun getAllBookings(): Result<List<Booking>> {
         return try {
             val snapshot = bookingsCol
-                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get().await()
             val bookings = snapshot.documents.mapNotNull { it.toObject(Booking::class.java) }
             Result.success(bookings)
