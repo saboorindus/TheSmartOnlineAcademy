@@ -306,7 +306,7 @@ fun WithdrawalCard(
             ) {
                 Column {
                     Text(withdrawal.teacherName, fontWeight = FontWeight.Medium)
-                    Text("ID: ${withdrawal.teacherId}", fontSize = 11.sp)
+//                    Text("ID: ${withdrawal.teacherId}", fontSize = 11.sp)
                 }
 
                 Surface(

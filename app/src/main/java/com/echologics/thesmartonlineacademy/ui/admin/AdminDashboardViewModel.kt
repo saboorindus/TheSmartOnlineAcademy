@@ -98,7 +98,8 @@ class AdminDashboardViewModel(
                 allUsers = allUsers,
                 platformConfig = platformConfig,
                 isLoading = false,
-                withdrawal = withdrawals
+                withdrawal = withdrawals,
+                paymentSettingUIState = _uiState.value.paymentSettingUIState
             )
         }
     }
