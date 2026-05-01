@@ -22,8 +22,21 @@ data class TeacherWithdrawalUiState(
     val isLoading: Boolean = true,
     val isSubmitting: Boolean = false,
     val error: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+
+    val paymentMethod: PaymentMethod = PaymentMethod.EASYPAISA,
+
+    val accountTitle: String = "",    // name on account
+    val accountNumber: String = "",   // wallet number
+
 )
+
+enum class PaymentMethod {
+    EASYPAISA,
+    JAZZCASH
+}
+
+
 
 class TeacherWithdrawalViewModel(
     private val withdrawalRepository: WithdrawalRepository
@@ -37,6 +50,18 @@ class TeacherWithdrawalViewModel(
 
     init { load() }
 
+    fun onAccountTitleChange(value: String) {
+        _uiState.value = _uiState.value.copy(accountTitle = value)
+    }
+
+    fun onAccountNumberChange(value: String) {
+        if (value.all { it.isDigit() }) {
+            _uiState.value = _uiState.value.copy(accountNumber = value)
+        }
+    }
+
+
+
     fun onAmountChange(v: String) {
         if (v.isEmpty() || v.all { it.isDigit() }) {
             _uiState.value = _uiState.value.copy(amountInput = v, error = null)
@@ -47,6 +72,11 @@ class TeacherWithdrawalViewModel(
         _uiState.value = _uiState.value.copy(error = null, successMessage = null)
     }
 
+    fun setMethod(method: PaymentMethod) {
+        _uiState.value = _uiState.value.copy(paymentMethod = method)
+    }
+
+
     fun requestWithdrawal() {
         val state = _uiState.value
         val amount = state.amountInput.toIntOrNull() ?: run {
@@ -54,7 +84,20 @@ class TeacherWithdrawalViewModel(
             return
         }
 
+
+        if (state.accountTitle.isBlank()) {
+            _uiState.value = state.copy(error = "Enter account title")
+            return
+        }
+
+        if (state.accountNumber.isBlank()) {
+            _uiState.value = state.copy(error = "Enter account number")
+            return
+        }
+
+
         when {
+
             amount <= 0 -> {
                 _uiState.value = state.copy(error = "Amount must be greater than zero")
                 return
@@ -76,11 +119,18 @@ class TeacherWithdrawalViewModel(
         _uiState.value = state.copy(isSubmitting = true, error = null)
         viewModelScope.launch {
             val result = withdrawalRepository.requestWithdrawal(
-                teacherId = uid,
-                teacherName = teacherName,
-                amount = amount,
-                currency = state.summary.currency
+                withdrawal = Withdrawal(
+                    teacherId = uid,
+                    teacherName = teacherName,
+                    amount = amount,
+                    currency = state.summary.currency,
+
+                    paymentMethod = state.paymentMethod.name,
+                    accountTitle = state.accountTitle,
+                    accountNumber = state.accountNumber
+                )
             )
+
             result.fold(
                 onSuccess = {
                     _uiState.value = _uiState.value.copy(

@@ -60,28 +60,25 @@ class WithdrawalRepository(private val context: Context? = null) {
     // ── Teacher withdrawals ───────────────────────────────────────────────────
 
     suspend fun requestWithdrawal(
-        teacherId: String,
-        teacherName: String,
-        amount: Int,
-        currency: String
+        withdrawal: Withdrawal
     ): Result<Unit> {
         return try {
             val id = UUID.randomUUID().toString()
-            val withdrawal = Withdrawal(
+
+            val data = withdrawal.copy(
                 id = id,
-                teacherId = teacherId,
-                teacherName = teacherName,
-                amount = amount,
-                currency = currency,
                 status = WithdrawalStatus.PENDING,
                 requestedAt = System.currentTimeMillis()
             )
-            withdrawalsCol.document(id).set(withdrawal).await()
+
+            withdrawalsCol.document(id).set(data).await()
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
 
     suspend fun getWithdrawalsForTeacher(teacherId: String): Result<List<Withdrawal>> {
         return try {
@@ -113,7 +110,7 @@ class WithdrawalRepository(private val context: Context? = null) {
             withdrawalsCol.document(withdrawalId).update(
                 mapOf(
                     "status" to WithdrawalStatus.PAID.name,
-                    "paidAt" to System.currentTimeMillis()
+                    "processedAt" to System.currentTimeMillis()
                 )
             ).await()
 

@@ -2,7 +2,6 @@ package com.echologics.thesmartonlineacademy.ui.common.components
 
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,6 +40,9 @@ import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
 import com.echologics.thesmartonlineacademy.ui.admin.AdminUiState
 import com.echologics.thesmartonlineacademy.ui.common.theme.Amber
 import com.echologics.thesmartonlineacademy.ui.common.theme.Teal
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 @Composable
@@ -276,7 +278,7 @@ fun WithdrawalsSection(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(withdrawals, key = { it.id }) { w ->
-            WithdrawalCard(w, viewModel)
+            WithdrawalCard(w)
         }
     }
 }
@@ -285,7 +287,7 @@ fun WithdrawalsSection(
 @Composable
 fun WithdrawalCard(
     withdrawal: Withdrawal,
-    viewModel: AdminDashboardViewModel
+    onClick: (Withdrawal) -> Unit = {}
 ) {
     val statusColor = when (withdrawal.status) {
         WithdrawalStatus.PENDING -> Amber
@@ -294,82 +296,69 @@ fun WithdrawalCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(withdrawal) },   // ✅ HERE
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(12.dp)) {
 
+        Column(Modifier.padding(14.dp)) {
+
+            // ── HEADER ─────────────────────────────
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(withdrawal.teacherName, fontWeight = FontWeight.Medium)
-//                    Text("ID: ${withdrawal.teacherId}", fontSize = 11.sp)
+
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        withdrawal.teacherName,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    )
+
+                    Text(
+                        "ID: ${withdrawal.teacherId.take(6)}...",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    )
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(50),
                     color = statusColor.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        withdrawal.status.name,
+                        withdrawal.status.name.lowercase()
+                            .replaceFirstChar { it.uppercase() },
                         color = statusColor,
-                        fontSize = 10.sp,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
-                "Amount: ${withdrawal.displayAmount()}",
-                fontWeight = FontWeight.SemiBold
+                withdrawal.displayAmount(),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = statusColor
             )
-
-            if (withdrawal.method.isNotBlank()) {
-                Text("Method: ${withdrawal.method}", fontSize = 12.sp)
-            }
-
-            if (withdrawal.transactionId.isNotBlank()) {
-                Text("Txn: ${withdrawal.transactionId}", fontSize = 12.sp)
-            }
-
-            if (withdrawal.adminNote.isNotBlank()) {
-                Text("Note: ${withdrawal.adminNote}", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
-            }
-
-            // ACTIONS
-            if (withdrawal.status == WithdrawalStatus.PENDING) {
-                Spacer(Modifier.height(10.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
-                    Button(
-                        onClick = {
-                            viewModel.markWithdrawalPaid(withdrawal)
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Teal)
-                    ) {
-                        Text("Mark Paid", fontSize = 12.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.rejectWithdrawal(withdrawal.id)
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Reject", fontSize = 12.sp)
-                    }
-                }
-            }
         }
     }
+}
+
+
+
+fun formatTimestamp(time: Long): String {
+    val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+    return sdf.format(Date(time))
 }
 
 

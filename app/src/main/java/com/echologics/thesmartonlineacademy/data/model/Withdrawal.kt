@@ -1,5 +1,8 @@
 package com.echologics.thesmartonlineacademy.data.model
 
+import com.echologics.thesmartonlineacademy.ui.teacher.withdrawal.PaymentMethod
+
+
 data class Withdrawal(
     val id: String = "",
     val teacherId: String = "",
@@ -8,11 +11,15 @@ data class Withdrawal(
     val currency: String = "PKR",
     val status: WithdrawalStatus = WithdrawalStatus.PENDING,
     val requestedAt: Long = System.currentTimeMillis(),
-    val processedAt: Long = 0L,     // ✅ renamed
+    val processedAt: Long = 0L,
     val adminNote: String = "",
-    val transactionId: String = "", // ✅ added
-    val method: String = ""         // ✅ optional
+    val transactionId: String = "",
+
+    val paymentMethod: String  = PaymentMethod.EASYPAISA.name,
+    val accountTitle: String = "",
+    val accountNumber: String = ""
 )
+
  {
     fun displayAmount(): String = "$currency $amount"
 }

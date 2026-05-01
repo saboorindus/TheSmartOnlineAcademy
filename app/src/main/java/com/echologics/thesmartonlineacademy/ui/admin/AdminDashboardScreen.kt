@@ -25,6 +25,7 @@ import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
 import com.echologics.thesmartonlineacademy.data.model.TeacherProfile
 import com.echologics.thesmartonlineacademy.data.model.User
+import com.echologics.thesmartonlineacademy.data.model.Withdrawal
 import com.echologics.thesmartonlineacademy.ui.common.components.AppTextField
 import com.echologics.thesmartonlineacademy.ui.common.components.PrimaryButton
 import com.echologics.thesmartonlineacademy.ui.common.components.WithdrawalCard
@@ -628,10 +629,25 @@ private fun PaymentsConfig(
     var feePercent by remember(uiState.platformConfig.platformFeePercent) {
         mutableStateOf(uiState.platformConfig.platformFeePercent.toString())
     }
+    var selectedWithdrawal by remember { mutableStateOf<Withdrawal?>(null) }
+
+    var transactionIdInput by remember { mutableStateOf("") }
+
+    var adminNoteInput by remember { mutableStateOf("") }
+
+    var showWithdrawalDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedWithdrawal) {
+        transactionIdInput = selectedWithdrawal?.transactionId ?: ""
+        adminNoteInput = selectedWithdrawal?.adminNote ?: ""
+    }
+
+
 
     Column(
         modifier = Modifier.fillMaxSize()
-    ) {
+    )
+    {
 
         // ── TOP CHIPS ─────────────────────────────
         LazyRow(
@@ -831,12 +847,19 @@ private fun PaymentsConfig(
                     return
                 }
 
+
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(withdrawals, key = { it.id }) { w ->
-                        WithdrawalCard(w, viewModel)
+                        WithdrawalCard(w,
+                            onClick = {
+                                selectedWithdrawal = it
+                                transactionIdInput = it.transactionId
+                                adminNoteInput = it.adminNote
+                                showWithdrawalDialog = true
+                            })
                     }
                 }
             }
@@ -882,7 +905,7 @@ private fun PaymentsConfig(
 
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 StatCard(
-                                    label = "Teacher Payouts",
+                                    label = "Total Teacher Earnings",
                                     value = uiState.teacherPayouts.toString(),
                                     icon = Icons.Default.School,
                                     color = Amber,
@@ -890,7 +913,7 @@ private fun PaymentsConfig(
                                 )
 
                                 StatCard(
-                                    label = "Pending",
+                                    label = "Pending Withdrawal Amount's",
                                     value = uiState.pendingPayouts.toString(),
                                     icon = Icons.Default.HourglassTop,
                                     color = MaterialTheme.colorScheme.error,
@@ -962,5 +985,90 @@ private fun PaymentsConfig(
 
         }
     }
+
+    if (showWithdrawalDialog && selectedWithdrawal != null) {
+
+        AlertDialog(
+            onDismissRequest = {
+                showWithdrawalDialog = false
+                selectedWithdrawal = null
+            },
+            confirmButton = {
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                    Button(
+                        onClick = {
+                            selectedWithdrawal?.let {
+                                viewModel.markWithdrawalPaid(
+                                    withdrawal = it.copy(
+                                        transactionId = transactionIdInput,
+                                        adminNote = adminNoteInput
+                                    )
+                                )
+                            }
+
+                            showWithdrawalDialog = false
+                            selectedWithdrawal = null
+                        }
+                    ) {
+                        Text("Mark Paid")
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            selectedWithdrawal?.let {
+                                viewModel.rejectWithdrawal(it.id)
+                            }
+
+                            showWithdrawalDialog = false
+                            selectedWithdrawal = null
+                        }
+                    ) {
+                        Text("Reject")
+                    }
+                }
+            },
+
+                    title = { Text("Withdrawal Details") },
+            text = {
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                    val withdrawal = selectedWithdrawal ?: return@AlertDialog
+
+
+                    Text("Teacher: ${withdrawal.teacherName}")
+
+                    Text("Amount: ${selectedWithdrawal!!.displayAmount()}")
+                    Text("Method: ${selectedWithdrawal!!.paymentMethod}")
+
+                    if (selectedWithdrawal!!.accountTitle.isNotBlank()) {
+                        Text("Name: ${selectedWithdrawal!!.accountTitle}")
+                    }
+
+                    if (selectedWithdrawal!!.accountNumber.isNotBlank()) {
+                        Text("Number: ${selectedWithdrawal!!.accountNumber}")
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = transactionIdInput,
+                        onValueChange = { transactionIdInput = it },
+                        label = { Text("Transaction ID (optional)") }
+                    )
+
+                    OutlinedTextField(
+                        value = adminNoteInput,
+                        onValueChange = { adminNoteInput = it },
+                        label = { Text("Admin Note (optional)") }
+                    )
+                }
+            }
+        )
+    }
+
+
 }
 

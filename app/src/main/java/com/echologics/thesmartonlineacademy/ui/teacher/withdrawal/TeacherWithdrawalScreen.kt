@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -203,6 +204,59 @@ fun TeacherWithdrawalScreen(
                             }
                         }
 
+
+                        // ── ⭐ NEW: PAYOUT METHOD ───────────────────────────────────
+                        Spacer(Modifier.height(16.dp))
+
+                        Text(
+                            "Payout Method",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(Modifier.height(6.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                            FilterChip(
+                                selected = uiState.paymentMethod == PaymentMethod.EASYPAISA,
+                                onClick = { viewModel.setMethod(PaymentMethod.EASYPAISA) },
+                                label = { Text("EasyPaisa") }
+                            )
+
+                            FilterChip(
+                                selected = uiState.paymentMethod == PaymentMethod.JAZZCASH,
+                                onClick = { viewModel.setMethod(PaymentMethod.JAZZCASH) },
+                                label = { Text("JazzCash") }
+                            )
+                        }
+
+
+                        // ── ⭐ NEW: ACCOUNT TITLE ───────────────────────────────────
+                        Spacer(Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = uiState.accountTitle,
+                            onValueChange = viewModel::onAccountTitleChange,
+                            label = { Text("Account Title (Name)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // ── ⭐ NEW: ACCOUNT NUMBER ──────────────────────────────────
+                        Spacer(Modifier.height(10.dp))
+
+                        OutlinedTextField(
+                            value = uiState.accountNumber,
+                            onValueChange = viewModel::onAccountNumberChange,
+                            label = { Text("Account Number") },
+                            placeholder = { Text("03XXXXXXXXX") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+
                         // Error
                         if (uiState.error != null) {
                             Spacer(Modifier.height(8.dp))
@@ -345,9 +399,9 @@ private fun WithdrawalHistoryCard(withdrawal: Withdrawal) {
             icon = Icons.Default.HourglassTop
         )
         WithdrawalStatus.REJECTED -> WithdrawalCardStyle(
-            bg = androidx.compose.ui.graphics.Color(0xFFFCEBEB),
-            border = androidx.compose.ui.graphics.Color(0xFFA32D2D).copy(alpha = 0.4f),
-            iconColor = androidx.compose.ui.graphics.Color(0xFFA32D2D),
+            bg = Color(0xFFFCEBEB),
+            border = Color(0xFFA32D2D).copy(alpha = 0.4f),
+            iconColor = Color(0xFFA32D2D),
             label = "Rejected",
             icon = Icons.Default.Close
         )
@@ -438,7 +492,7 @@ private data class WithdrawalCardStyle(
     val border: Color,
     val iconColor: Color,
     val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    val icon: ImageVector
 )
 
 // Kotlin destructuring for WithdrawalCardStyle
