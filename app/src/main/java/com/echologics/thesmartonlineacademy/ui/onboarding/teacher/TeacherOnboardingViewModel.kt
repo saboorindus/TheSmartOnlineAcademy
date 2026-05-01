@@ -162,7 +162,8 @@ class TeacherOnboardingViewModel(private val authRepository: AuthRepository) : V
             availabilitySlots = s.availabilitySlots,
             trialSessionEnabled = s.trialSessionEnabled,
             trialRate = s.trialRate,
-            approvalStatus = ApprovalStatus.PENDING
+            approvalStatus = ApprovalStatus.PENDING,
+            disabled = false
         )
         viewModelScope.launch {
             val result = authRepository.saveTeacherProfile(profile)

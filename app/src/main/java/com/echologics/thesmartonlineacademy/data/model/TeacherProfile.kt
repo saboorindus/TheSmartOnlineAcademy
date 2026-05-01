@@ -22,7 +22,10 @@ data class TeacherProfile(
     val isVerified: Boolean = false,
 
     val ratePerTenMin: Int = 0,
-    val currency: String = "PKR"
+    val currency: String = "PKR",
+
+    val disabled: Boolean = false
+
 ) {
     // Convenience display string shown on teacher cards
     fun displayRate(): String = "$currency $ratePerTenMin / 10 min"
