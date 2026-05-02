@@ -36,6 +36,19 @@ class MainActivity : ComponentActivity() {
 
     fun requestScreenCapture(onResult: (Int, android.content.Intent) -> Unit) {
         screenShareCallback = onResult
+
+        // Start foreground service BEFORE showing the permission dialog
+        // Android 10+ requires it to already be running when getMediaProjection() is called
+        val serviceIntent = android.content.Intent(
+            this,
+            com.echologics.thesmartonlineacademy.services.ScreenCaptureService::class.java
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
+
         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
         screenCaptureLauncher.launch(mgr.createScreenCaptureIntent())
     }
@@ -107,6 +120,7 @@ class MainActivity : ComponentActivity() {
     private fun enterPipIfSessionActive() {
         val vm = activePipSession ?: return
         if (!vm.uiState.value.isSessionActive) return
+        if (vm.uiState.value.isScreenSharing) return   // ← add this
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val params = android.app.PictureInPictureParams.Builder()
                 .setAspectRatio(android.util.Rational(16, 9))

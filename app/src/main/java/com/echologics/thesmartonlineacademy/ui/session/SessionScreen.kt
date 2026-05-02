@@ -133,7 +133,10 @@ fun SessionScreen(
                         sessionViewModel.setupRemoteVideo(view, uiState.remoteUid!!)
                     }
                 },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                update = { view ->
+                    sessionViewModel.setupRemoteVideo(view, uiState.remoteUid!!)
+                }
             )
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

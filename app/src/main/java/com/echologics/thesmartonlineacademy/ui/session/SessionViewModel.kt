@@ -55,7 +55,8 @@ data class SessionUiState(
     val connectionState: String = "Connecting...",
     val raisedHands: List<String> = emptyList(),
     val hasRaisedHand: Boolean = false,
-    val isInPipMode: Boolean = false
+    val isInPipMode: Boolean = false,
+    val remoteVideoKey: Int = 0
 )
 
 class SessionViewModel(
@@ -302,19 +303,22 @@ class SessionViewModel(
 
 
     fun startScreenShare(resultCode: Int, data: android.content.Intent, context: Context) {
-        // startForegroundService requires API 26+, use startService on API 24-25
-        val serviceIntent = Intent(context, ScreenCaptureService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(serviceIntent)
-        } else {
-            context.startService(serviceIntent)
+        // Service is already started by MainActivity before this is called
+        val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE)
+                as android.media.projection.MediaProjectionManager
+        val mediaProjection = projectionManager.getMediaProjection(resultCode, data)
+        if (mediaProjection == null) {
+            _uiState.value = _uiState.value.copy(error = "Screen capture not supported on this device")
+            return
         }
+        rtcEngine?.setExternalMediaProjection(mediaProjection)
 
-        val parameters = ScreenCaptureParameters().apply {
-            captureVideo = true
-            captureAudio = false
-        }
-        rtcEngine?.startScreenCapture(parameters)
+        rtcEngine?.startScreenCapture(
+            ScreenCaptureParameters().apply {
+                captureVideo = true
+                captureAudio = false
+            }
+        )
 
         val options = ChannelMediaOptions().apply {
             publishScreenCaptureVideo = true
@@ -325,13 +329,15 @@ class SessionViewModel(
         }
         rtcEngine?.updateChannelMediaOptions(options)
 
-        _uiState.value = _uiState.value.copy(isScreenSharing = true, isCameraOff = true)
+        _uiState.value = _uiState.value.copy(
+            isScreenSharing = true,
+            isCameraOff = true,
+            remoteVideoKey = _uiState.value.remoteVideoKey + 1
+        )
     }
 
     fun stopScreenShare(context: Context) {
         rtcEngine?.stopScreenCapture()
-
-        // Switch back to camera
         val options = ChannelMediaOptions().apply {
             publishScreenCaptureVideo = false
             publishCameraTrack = true
@@ -340,11 +346,12 @@ class SessionViewModel(
             autoSubscribeVideo = true
         }
         rtcEngine?.updateChannelMediaOptions(options)
-
-        // Stop the foreground service
-        context.stopService(android.content.Intent(context, ScreenCaptureService::class.java))
-
-        _uiState.value = _uiState.value.copy(isScreenSharing = false, isCameraOff = false)
+        context.stopService(android.content.Intent(context, com.echologics.thesmartonlineacademy.services.ScreenCaptureService::class.java))
+        _uiState.value = _uiState.value.copy(
+            isScreenSharing = false,
+            isCameraOff = false,
+            remoteVideoKey = _uiState.value.remoteVideoKey + 1
+        )
     }
 
     // ── End session ───────────────────────────────────────────────────────────
