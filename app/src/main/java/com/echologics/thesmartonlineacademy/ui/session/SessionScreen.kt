@@ -15,7 +15,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ScreenShare
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.StopScreenShare
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -314,6 +316,23 @@ fun SessionScreen(
                         active = uiState.hasRaisedHand,
                         tint = if (uiState.hasRaisedHand) Color(0xFFE24B4A) else null,
                         onClick = sessionViewModel::raiseHand
+                    )
+                }
+                if (role == SessionRole.TEACHER) {
+                    ControlButton(
+                        icon = if (uiState.isScreenSharing) Icons.AutoMirrored.Filled.StopScreenShare
+                        else Icons.AutoMirrored.Filled.ScreenShare,
+                        label = if (uiState.isScreenSharing) "Stop" else "Share",
+                        active = uiState.isScreenSharing,
+                        onClick = {
+                            if (uiState.isScreenSharing) {
+                                sessionViewModel.stopScreenShare(context)
+                            } else {
+                                activity.requestScreenCapture { resultCode, data ->
+                                    sessionViewModel.startScreenShare(resultCode, data, context)
+                                }
+                            }
+                        }
                     )
                 }
                 Box(

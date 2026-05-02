@@ -23,6 +23,23 @@ class MainActivity : ComponentActivity() {
 
     private var showDisabledDialogState: MutableState<Boolean>? = null
 
+    private var screenShareCallback: ((Int, android.content.Intent) -> Unit)? = null
+
+    private val screenCaptureLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            screenShareCallback?.invoke(result.resultCode, result.data!!)
+        }
+        screenShareCallback = null
+    }
+
+    fun requestScreenCapture(onResult: (Int, android.content.Intent) -> Unit) {
+        screenShareCallback = onResult
+        val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
+        screenCaptureLauncher.launch(mgr.createScreenCaptureIntent())
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()

@@ -7,6 +7,7 @@ import com.echologics.thesmartonlineacademy.data.repository.AuthRepository
 import com.echologics.thesmartonlineacademy.data.repository.BookingRepository
 import com.echologics.thesmartonlineacademy.data.repository.MessagingRepository
 import com.echologics.thesmartonlineacademy.data.repository.ReviewRepository
+import com.echologics.thesmartonlineacademy.data.repository.SessionRepository
 import com.echologics.thesmartonlineacademy.data.repository.TeacherRepository
 import com.echologics.thesmartonlineacademy.data.repository.WithdrawalRepository
 import com.echologics.thesmartonlineacademy.ui.admin.AdminDashboardViewModel
@@ -36,7 +37,8 @@ class AppViewModelFactory(
     private val bookingRepository: BookingRepository,
     private val reviewRepository: ReviewRepository,
     private val teacherRepository: TeacherRepository,
-    private val withDrawalRepository: WithdrawalRepository
+    private val withDrawalRepository: WithdrawalRepository,
+    private val sessionRepository: SessionRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -77,7 +79,7 @@ class AppViewModelFactory(
                 SessionViewModel() as T
 
             modelClass.isAssignableFrom(WhiteboardViewModel::class.java) ->
-                WhiteboardViewModel() as T
+                WhiteboardViewModel(sessionRepository) as T
 
             modelClass.isAssignableFrom(ConversationListViewModel::class.java) ->
                 ConversationListViewModel(messagingRepository) as T

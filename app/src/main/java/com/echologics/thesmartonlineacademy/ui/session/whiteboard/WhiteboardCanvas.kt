@@ -25,10 +25,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.echologics.thesmartonlineacademy.data.model.DrawTool
+import com.echologics.thesmartonlineacademy.data.model.SessionRole
 
 @Composable
 fun WhiteboardCanvas(
     viewModel: WhiteboardViewModel,
+    role: com.echologics.thesmartonlineacademy.data.model.SessionRole,  // ← add
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -55,13 +57,17 @@ fun WhiteboardCanvas(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .pointerInput(Unit) {
-                    detectDragGestures(
-                        onDragStart = { offset -> viewModel.onDragStart(offset) },
-                        onDrag = { change, _ -> viewModel.onDrag(change.position) },
-                        onDragEnd = { viewModel.onDragEnd() }
-                    )
-                }
+                .then(
+                    if (role == SessionRole.TEACHER) {
+                        Modifier.pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { offset -> viewModel.onDragStart(offset) },
+                                onDrag = { change, _ -> viewModel.onDrag(change.position) },
+                                onDragEnd = { viewModel.onDragEnd() }
+                            )
+                        }
+                    } else Modifier
+                )
         ) {
             // Draw committed paths
             uiState.paths.forEach { drawPath ->

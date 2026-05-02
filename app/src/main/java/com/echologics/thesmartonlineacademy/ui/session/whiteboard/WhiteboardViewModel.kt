@@ -35,7 +35,7 @@ val toolColors = listOf(
 val strokeWidths = listOf(2f, 4f, 8f, 16f)
 
 class WhiteboardViewModel(
-    private val sessionRepository: SessionRepository = SessionRepository()
+    private val sessionRepository: SessionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(WhiteboardUiState())

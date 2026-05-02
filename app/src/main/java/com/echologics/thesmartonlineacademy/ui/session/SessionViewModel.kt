@@ -1,18 +1,23 @@
 package com.echologics.thesmartonlineacademy.ui.session
 
 import android.content.Context
+import android.content.Intent
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.ChatMessage
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.data.repository.SessionRepository
+import com.echologics.thesmartonlineacademy.services.ScreenCaptureService
 import com.google.firebase.auth.FirebaseAuth
 import io.agora.rtc2.ChannelMediaOptions
 import io.agora.rtc2.Constants
 import io.agora.rtc2.IRtcEngineEventHandler
 import io.agora.rtc2.RtcEngine
 import io.agora.rtc2.RtcEngineConfig
+import io.agora.rtc2.ScreenCaptureParameters
 import io.agora.rtc2.video.VideoCanvas
 import io.agora.rtc2.video.VideoEncoderConfiguration
 import kotlinx.coroutines.Dispatchers
@@ -293,6 +298,53 @@ class SessionViewModel(
 
     fun onPipModeChanged(inPip: Boolean) {
         _uiState.value = _uiState.value.copy(isInPipMode = inPip)
+    }
+
+
+    fun startScreenShare(resultCode: Int, data: android.content.Intent, context: Context) {
+        // startForegroundService requires API 26+, use startService on API 24-25
+        val serviceIntent = Intent(context, ScreenCaptureService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
+        }
+
+        val parameters = ScreenCaptureParameters().apply {
+            captureVideo = true
+            captureAudio = false
+        }
+        rtcEngine?.startScreenCapture(parameters)
+
+        val options = ChannelMediaOptions().apply {
+            publishScreenCaptureVideo = true
+            publishCameraTrack = false
+            publishMicrophoneTrack = true
+            autoSubscribeAudio = true
+            autoSubscribeVideo = true
+        }
+        rtcEngine?.updateChannelMediaOptions(options)
+
+        _uiState.value = _uiState.value.copy(isScreenSharing = true, isCameraOff = true)
+    }
+
+    fun stopScreenShare(context: Context) {
+        rtcEngine?.stopScreenCapture()
+
+        // Switch back to camera
+        val options = ChannelMediaOptions().apply {
+            publishScreenCaptureVideo = false
+            publishCameraTrack = true
+            publishMicrophoneTrack = true
+            autoSubscribeAudio = true
+            autoSubscribeVideo = true
+        }
+        rtcEngine?.updateChannelMediaOptions(options)
+
+        // Stop the foreground service
+        context.stopService(android.content.Intent(context, ScreenCaptureService::class.java))
+
+        _uiState.value = _uiState.value.copy(isScreenSharing = false, isCameraOff = false)
     }
 
     // ── End session ───────────────────────────────────────────────────────────
