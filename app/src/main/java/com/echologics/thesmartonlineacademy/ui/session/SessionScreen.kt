@@ -2,6 +2,7 @@ package com.echologics.thesmartonlineacademy.ui.session
 
 import android.Manifest
 import android.view.SurfaceView
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -33,7 +34,9 @@ import com.echologics.thesmartonlineacademy.data.model.ChatMessage
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.ui.session.whiteboard.WhiteboardCanvas
 import com.echologics.thesmartonlineacademy.ui.session.whiteboard.WhiteboardViewModel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import com.echologics.thesmartonlineacademy.MainActivity
 
 @Composable
 fun SessionScreen(
@@ -43,10 +46,11 @@ fun SessionScreen(
     role: SessionRole,
     onSessionEnded: () -> Unit
 ) {
-    val context = LocalContext.current
     val uiState by sessionViewModel.uiState.collectAsState()
     var permissionsGranted by remember { mutableStateOf(false) }
     var showEndConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val activity = LocalActivity.current as MainActivity
 
     // Request camera + mic permissions
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -65,11 +69,19 @@ fun SessionScreen(
     LaunchedEffect(permissionsGranted) {
         if (permissionsGranted) {
             sessionViewModel.initSession(context, booking, role)
+            whiteboardViewModel.initSync(booking.id, FirebaseAuth.getInstance().currentUser?.uid ?: "")
         }
     }
 
     LaunchedEffect(uiState.isEnded) {
         if (uiState.isEnded) onSessionEnded()
+    }
+
+    DisposableEffect(Unit) {
+        MainActivity.activePipSession = sessionViewModel
+        onDispose {
+            MainActivity.activePipSession = null
+        }
     }
 
     // End session confirmation dialog
@@ -111,9 +123,7 @@ fun SessionScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A1A))) {
 
-        // ── Video feeds ───────────────────────────────────────────────────────
-
-        // Remote video (full screen background)
+        // Remote video — always visible, even in PiP
         if (uiState.isRemoteVideoVisible && uiState.remoteUid != null) {
             AndroidView(
                 factory = { ctx ->
@@ -124,7 +134,6 @@ fun SessionScreen(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            // Waiting placeholder
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(32.dp))
@@ -134,149 +143,192 @@ fun SessionScreen(
             }
         }
 
-        // Local video (picture-in-picture, top-right)
-        if (!uiState.isCameraOff) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .size(width = 110.dp, height = 150.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF2A2A2A))
-            ) {
-                AndroidView(
-                    factory = { ctx ->
-                        SurfaceView(ctx).also { view ->
-                            sessionViewModel.setupLocalVideo(view)
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
+        // Everything below hidden in PiP — only remote video shows
+        if (!uiState.isInPipMode) {
 
-        // ── Top bar ───────────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = if (role == SessionRole.TEACHER) booking.studentName else booking.teacherName,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                )
-                Text(
-                    text = "${booking.subject} · ${booking.sessionLength}",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 12.sp
-                )
+            // Local video pip (top-right)
+            if (!uiState.isCameraOff) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(width = 110.dp, height = 150.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF2A2A2A))
+                ) {
+                    AndroidView(
+                        factory = { ctx ->
+                            SurfaceView(ctx).also { view ->
+                                sessionViewModel.setupLocalVideo(view)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
-            // Live indicator
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = if (uiState.isSessionActive) Color(0xFFE24B4A) else Color.Gray
-            ) {
-                Text(
-                    text = if (uiState.isSessionActive) "LIVE" else uiState.connectionState,
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                )
-            }
-        }
 
-        // ── Whiteboard overlay ────────────────────────────────────────────────
-        if (uiState.isWhiteboardVisible) {
-            Box(
+            // Top bar
+            Row(
                 modifier = Modifier
-                    .align(Alignment.Center)
+                    .align(Alignment.TopStart)
                     .fillMaxWidth()
-                    .fillMaxHeight(0.7f)
-                    .padding(horizontal = 8.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                WhiteboardCanvas(viewModel = whiteboardViewModel)
+                Column {
+                    Text(
+                        text = if (role == SessionRole.TEACHER) booking.studentName else booking.teacherName,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    )
+                    Text(
+                        text = "${booking.subject} · ${booking.sessionLength}",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 12.sp
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (uiState.isSessionActive) Color(0xFFE24B4A) else Color.Gray
+                ) {
+                    Text(
+                        text = if (uiState.isSessionActive) "LIVE" else uiState.connectionState,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
-        }
 
-        // ── Chat panel ────────────────────────────────────────────────────────
-        if (uiState.isChatVisible) {
-            ChatPanel(
-                messages = uiState.chatMessages,
-                input = uiState.chatInput,
-                onInputChange = sessionViewModel::onChatInputChange,
-                onSend = sessionViewModel::sendChatMessage,
+            // Raised hand badge (teacher only)
+            if (role == SessionRole.TEACHER && uiState.raisedHands.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 72.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFFE24B4A)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.PanTool,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = if (uiState.raisedHands.size == 1) "Student raised hand"
+                            else "${uiState.raisedHands.size} students raised hands",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            // Whiteboard
+            if (uiState.isWhiteboardVisible) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.7f)
+                        .padding(horizontal = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White)
+                ) {
+                    WhiteboardCanvas(viewModel = whiteboardViewModel, role = role)
+                }
+            }
+
+            // Chat
+            if (uiState.isChatVisible) {
+                ChatPanel(
+                    messages = uiState.chatMessages,
+                    input = uiState.chatInput,
+                    onInputChange = sessionViewModel::onChatInputChange,
+                    onSend = sessionViewModel::sendChatMessage,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.5f)
+                        .padding(bottom = 100.dp, start = 8.dp, end = 8.dp)
+                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                        .background(Color(0xF2FFFFFF))
+                )
+            }
+
+            // Bottom controls
+            Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .fillMaxHeight(0.5f)
-                    .padding(bottom = 100.dp, start = 8.dp, end = 8.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(Color(0xF2FFFFFF))
-            )
-        }
-
-        // ── Bottom control bar ────────────────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(Color(0xCC000000))
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ControlButton(
-                icon = if (uiState.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                label = if (uiState.isMuted) "Unmute" else "Mute",
-                active = !uiState.isMuted,
-                onClick = sessionViewModel::toggleMute
-            )
-            ControlButton(
-                icon = if (uiState.isCameraOff) Icons.Default.VideocamOff else Icons.Default.Videocam,
-                label = if (uiState.isCameraOff) "Cam off" else "Cam on",
-                active = !uiState.isCameraOff,
-                onClick = sessionViewModel::toggleCamera
-            )
-            ControlButton(
-                icon = Icons.Default.Draw,
-                label = "Board",
-                active = uiState.isWhiteboardVisible,
-                onClick = sessionViewModel::toggleWhiteboard
-            )
-            ControlButton(
-                icon = Icons.AutoMirrored.Filled.Chat,
-                label = "Chat",
-                active = uiState.isChatVisible,
-                tint = if (uiState.chatMessages.isNotEmpty()) Color(0xFF1D9E75) else null,
-                onClick = sessionViewModel::toggleChat
-            )
-            ControlButton(
-                icon = Icons.Default.Cameraswitch,
-                label = "Flip",
-                active = false,
-                onClick = sessionViewModel::switchCamera
-            )
-            // End session button (red)
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFE24B4A))
-                    .clickableSafe { showEndConfirm = true },
-                contentAlignment = Alignment.Center
+                    .background(Color(0xCC000000))
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.CallEnd, contentDescription = "End session", tint = Color.White, modifier = Modifier.size(24.dp))
+                ControlButton(
+                    icon = if (uiState.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                    label = if (uiState.isMuted) "Unmute" else "Mute",
+                    active = !uiState.isMuted,
+                    onClick = sessionViewModel::toggleMute
+                )
+                ControlButton(
+                    icon = if (uiState.isCameraOff) Icons.Default.VideocamOff else Icons.Default.Videocam,
+                    label = if (uiState.isCameraOff) "Cam off" else "Cam on",
+                    active = !uiState.isCameraOff,
+                    onClick = sessionViewModel::toggleCamera
+                )
+                ControlButton(
+                    icon = Icons.Default.Draw,
+                    label = "Board",
+                    active = uiState.isWhiteboardVisible,
+                    onClick = sessionViewModel::toggleWhiteboard
+                )
+                ControlButton(
+                    icon = Icons.AutoMirrored.Filled.Chat,
+                    label = "Chat",
+                    active = uiState.isChatVisible,
+                    tint = if (uiState.chatMessages.isNotEmpty()) Color(0xFF1D9E75) else null,
+                    onClick = sessionViewModel::toggleChat
+                )
+                ControlButton(
+                    icon = Icons.Default.Cameraswitch,
+                    label = "Flip",
+                    active = false,
+                    onClick = sessionViewModel::switchCamera
+                )
+                if (role == SessionRole.STUDENT) {
+                    ControlButton(
+                        icon = Icons.Default.PanTool,
+                        label = if (uiState.hasRaisedHand) "Lower" else "Raise",
+                        active = uiState.hasRaisedHand,
+                        tint = if (uiState.hasRaisedHand) Color(0xFFE24B4A) else null,
+                        onClick = sessionViewModel::raiseHand
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE24B4A))
+                        .clickableSafe { showEndConfirm = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.CallEnd, contentDescription = "End session", tint = Color.White, modifier = Modifier.size(24.dp))
+                }
             }
-        }
+
+        } // end isInPipMode check
     }
 }
 

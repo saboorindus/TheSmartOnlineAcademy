@@ -4,7 +4,11 @@ import com.echologics.thesmartonlineacademy.data.model.AdminStats
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
 import com.echologics.thesmartonlineacademy.data.model.ChatMessage
+import com.echologics.thesmartonlineacademy.data.model.DrawPath
 import com.echologics.thesmartonlineacademy.data.model.TeacherWallet
+import com.echologics.thesmartonlineacademy.data.model.toDrawPath
+import com.echologics.thesmartonlineacademy.data.model.toMap
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
@@ -120,4 +124,66 @@ class SessionRepository {
             } ?: emptyList()
             onMessages(messages)
         }
+
+
+    fun raiseHand(bookingId: String, studentId: String) {
+        db.collection("bookings").document(bookingId)
+            .update("raisedHands", FieldValue.arrayUnion(studentId))
+    }
+
+    fun lowerHand(bookingId: String, studentId: String) {
+        db.collection("bookings").document(bookingId)
+            .update("raisedHands", FieldValue.arrayRemove(studentId))
+    }
+
+    fun listenToRaisedHands(
+        bookingId: String,
+        onUpdate: (List<String>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration {
+        return db.collection("bookings").document(bookingId)
+            .addSnapshotListener { snap, _ ->
+                @Suppress("UNCHECKED_CAST")
+                val hands = snap?.get("raisedHands") as? List<String> ?: emptyList()
+                onUpdate(hands)
+            }
+    }
+
+
+    fun sendStroke(bookingId: String, path: DrawPath) {
+        db.collection("bookings")
+            .document(bookingId)
+            .collection("strokes")
+            .document(path.id)
+            .set(path.toMap())
+    }
+
+    fun listenToStrokes(
+        bookingId: String,
+        onUpdate: (List<DrawPath>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration {
+        return db.collection("bookings")
+            .document(bookingId)
+            .collection("strokes")
+            .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.ASCENDING)
+            .addSnapshotListener { snap, _ ->
+                val paths = snap?.documents?.mapNotNull { doc ->
+                    doc.data?.toDrawPath()
+                } ?: emptyList()
+                onUpdate(paths)
+            }
+    }
+
+    fun clearStrokes(bookingId: String) {
+        db.collection("bookings")
+            .document(bookingId)
+            .collection("strokes")
+            .get()
+            .addOnSuccessListener { snap ->
+                val batch = db.batch()
+                snap.documents.forEach { batch.delete(it.reference) }
+                batch.commit()
+            }
+    }
+
+
 }

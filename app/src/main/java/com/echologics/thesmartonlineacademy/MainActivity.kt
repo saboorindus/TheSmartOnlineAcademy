@@ -14,6 +14,7 @@ import com.echologics.thesmartonlineacademy.navigation.Screen
 import com.echologics.thesmartonlineacademy.notifications.NotificationHelper
 import com.echologics.thesmartonlineacademy.ui.common.components.DisabledAccountDialog
 import com.echologics.thesmartonlineacademy.ui.common.theme.TheSmartOnlineAcademyTheme
+import com.echologics.thesmartonlineacademy.ui.session.SessionViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -73,6 +74,30 @@ class MainActivity : ComponentActivity() {
         checkIfUserDisabled()
     }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        enterPipIfSessionActive()
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: android.content.res.Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        activePipSession?.onPipModeChanged(isInPictureInPictureMode)
+    }
+
+    private fun enterPipIfSessionActive() {
+        val vm = activePipSession ?: return
+        if (!vm.uiState.value.isSessionActive) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val params = android.app.PictureInPictureParams.Builder()
+                .setAspectRatio(android.util.Rational(16, 9))
+                .build()
+            enterPictureInPictureMode(params)
+        }
+    }
+
     private fun checkIfUserDisabled() {
         val firebaseUser = FirebaseAuth.getInstance().currentUser ?: return
 
@@ -118,5 +143,10 @@ class MainActivity : ComponentActivity() {
             android.util.Log.e("MainActivity", "resolveStartDestination failed", e)
             Pair(Screen.RoleSelect.route, false)
         }
+    }
+
+    companion object {
+        // SessionScreen registers the active ViewModel here so MainActivity can talk to it
+        var activePipSession: SessionViewModel? = null
     }
 }

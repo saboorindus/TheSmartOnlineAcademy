@@ -47,7 +47,10 @@ data class SessionUiState(
     val isEnded: Boolean = false,
     val error: String? = null,
     val isRemoteVideoVisible: Boolean = false,
-    val connectionState: String = "Connecting..."
+    val connectionState: String = "Connecting...",
+    val raisedHands: List<String> = emptyList(),
+    val hasRaisedHand: Boolean = false,
+    val isInPipMode: Boolean = false
 )
 
 class SessionViewModel(
@@ -59,6 +62,8 @@ class SessionViewModel(
 
     private var rtcEngine: RtcEngine? = null
     private var chatListener: com.google.firebase.firestore.ListenerRegistration? = null
+    private var handsListener: com.google.firebase.firestore.ListenerRegistration? = null  // ← add
+
     private val currentUid get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     private val eventHandler = object : IRtcEngineEventHandler() {
@@ -150,6 +155,7 @@ class SessionViewModel(
             }
             joinChannel(booking.agoraChannelName, uid, token)
             listenToChat(booking.id)
+            listenToRaisedHands(booking.id)
         }
     }
 
@@ -269,6 +275,26 @@ class SessionViewModel(
         }
     }
 
+    fun raiseHand() {
+        val bookingId = _uiState.value.booking?.id ?: return
+        val raised = !_uiState.value.hasRaisedHand
+        _uiState.value = _uiState.value.copy(hasRaisedHand = raised)
+        viewModelScope.launch {
+            if (raised) sessionRepository.raiseHand(bookingId, currentUid)
+            else sessionRepository.lowerHand(bookingId, currentUid)
+        }
+    }
+
+    private fun listenToRaisedHands(bookingId: String) {
+        handsListener = sessionRepository.listenToRaisedHands(bookingId) { hands ->
+            _uiState.value = _uiState.value.copy(raisedHands = hands)
+        }
+    }
+
+    fun onPipModeChanged(inPip: Boolean) {
+        _uiState.value = _uiState.value.copy(isInPipMode = inPip)
+    }
+
     // ── End session ───────────────────────────────────────────────────────────
 
     fun endSession() {
@@ -283,6 +309,7 @@ class SessionViewModel(
     override fun onCleared() {
         super.onCleared()
         chatListener?.remove()
+        handsListener?.remove()
         rtcEngine?.leaveChannel()
         RtcEngine.destroy()
         rtcEngine = null

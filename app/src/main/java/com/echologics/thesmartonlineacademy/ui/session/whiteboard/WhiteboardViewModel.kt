@@ -3,11 +3,14 @@ package com.echologics.thesmartonlineacademy.ui.session.whiteboard
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.DrawPath
 import com.echologics.thesmartonlineacademy.data.model.DrawTool
+import com.echologics.thesmartonlineacademy.data.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 data class WhiteboardUiState(
@@ -31,43 +34,58 @@ val toolColors = listOf(
 
 val strokeWidths = listOf(2f, 4f, 8f, 16f)
 
-class WhiteboardViewModel : ViewModel() {
+class WhiteboardViewModel(
+    private val sessionRepository: SessionRepository = SessionRepository()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(WhiteboardUiState())
     val uiState: StateFlow<WhiteboardUiState> = _uiState.asStateFlow()
+
+    private var bookingId: String? = null
+    private var myUid: String = ""
+    private var strokeListener: com.google.firebase.firestore.ListenerRegistration? = null
+
+    // Called from SessionViewModel once session is ready
+    fun initSync(bookingId: String, uid: String) {
+        this.bookingId = bookingId
+        this.myUid = uid
+        strokeListener = sessionRepository.listenToStrokes(bookingId) { remotePaths ->
+            _uiState.value = _uiState.value.copy(paths = remotePaths)
+        }
+    }
 
     fun onDragStart(offset: Offset) {
         val tool = _uiState.value.selectedTool
         val color = if (tool == DrawTool.ERASER) Color.White else _uiState.value.selectedColor
         val width = if (tool == DrawTool.ERASER) 36f else _uiState.value.strokeWidth
-        val highlighterAlpha = if (tool == DrawTool.HIGHLIGHTER) 0.4f else 1f
+        val alpha = if (tool == DrawTool.HIGHLIGHTER) 0.4f else 1f
 
         val newPath = DrawPath(
             id = UUID.randomUUID().toString(),
             points = listOf(offset),
-            color = color.copy(alpha = highlighterAlpha),
+            color = color.copy(alpha = alpha),
             strokeWidth = width,
-            tool = tool
+            tool = tool,
+            authorId = myUid
         )
         _uiState.value = _uiState.value.copy(currentPath = newPath)
     }
 
     fun onDrag(offset: Offset) {
         val current = _uiState.value.currentPath ?: return
-        val updated = current.copy(points = current.points + offset)
-        _uiState.value = _uiState.value.copy(currentPath = updated)
+        _uiState.value = _uiState.value.copy(
+            currentPath = current.copy(points = current.points + offset)
+        )
     }
 
     fun onDragEnd() {
         val current = _uiState.value.currentPath ?: return
+        _uiState.value = _uiState.value.copy(currentPath = null)
         if (current.points.size > 1) {
-            _uiState.value = _uiState.value.copy(
-                paths = _uiState.value.paths + current,
-                currentPath = null,
-                undoStack = emptyList() // clear redo after new stroke
-            )
-        } else {
-            _uiState.value = _uiState.value.copy(currentPath = null)
+            // Don't add to local paths list — the Firestore listener will push it back
+            // This prevents double-rendering
+            bookingId?.let { sessionRepository.sendStroke(it, current) }
+            _uiState.value = _uiState.value.copy(undoStack = emptyList())
         }
     }
 
@@ -92,7 +110,14 @@ class WhiteboardViewModel : ViewModel() {
     }
 
     fun clearBoard() {
-        _uiState.value = _uiState.value.copy(paths = emptyList(), currentPath = null, undoStack = emptyList())
+        _uiState.value = _uiState.value.copy(
+            paths = emptyList(),
+            currentPath = null,
+            undoStack = emptyList()
+        )
+        bookingId?.let {
+            viewModelScope.launch { sessionRepository.clearStrokes(it) }
+        }
     }
 
     fun selectTool(tool: DrawTool) {
@@ -102,11 +127,16 @@ class WhiteboardViewModel : ViewModel() {
     fun selectColor(color: Color) {
         _uiState.value = _uiState.value.copy(
             selectedColor = color,
-            selectedTool = DrawTool.PEN // switch back to pen when picking a color
+            selectedTool = DrawTool.PEN
         )
     }
 
     fun selectStrokeWidth(width: Float) {
         _uiState.value = _uiState.value.copy(strokeWidth = width)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        strokeListener?.remove()
     }
 }
