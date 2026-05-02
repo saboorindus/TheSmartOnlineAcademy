@@ -64,24 +64,24 @@ class TeacherBookingsViewModel(
         )
 
 
-    fun confirmPayment(booking: Booking) {
-        _uiState.value = _uiState.value.copy(confirmingBookingId = booking.id)
-        viewModelScope.launch {
-            val result = bookingRepository.confirmPayment(booking.id, booking.teacherName, booking.subject)
-            result.fold(
-                onSuccess = {
-                    _uiState.value = _uiState.value.copy(confirmingBookingId = null)
-                    loadBookings()
-                },
-                onFailure = { e ->
-                    _uiState.value = _uiState.value.copy(
-                        confirmingBookingId = null,
-                        error = e.message
-                    )
-                }
-            )
-        }
-    }
+//    fun confirmPayment(booking: Booking) {
+//        _uiState.value = _uiState.value.copy(confirmingBookingId = booking.id)
+//        viewModelScope.launch {
+//            val result = bookingRepository.confirmPayment(booking.id, booking.teacherName, booking.subject)
+//            result.fold(
+//                onSuccess = {
+//                    _uiState.value = _uiState.value.copy(confirmingBookingId = null)
+//                    loadBookings()
+//                },
+//                onFailure = { e ->
+//                    _uiState.value = _uiState.value.copy(
+//                        confirmingBookingId = null,
+//                        error = e.message
+//                    )
+//                }
+//            )
+//        }
+//    }
 
     fun cancelBooking(bookingId: String) {
         viewModelScope.launch {

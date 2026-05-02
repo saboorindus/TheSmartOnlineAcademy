@@ -205,17 +205,14 @@
         fun confirmPayment(booking: Booking) {
             _uiState.value = _uiState.value.copy(confirmingBookingId = booking.id)
             viewModelScope.launch {
-                val result = bookingRepository.confirmPayment(booking.id,booking.teacherName,booking.subject)
+                val result = bookingRepository.confirmPayment(booking.id) // ← no extra params needed
                 result.fold(
                     onSuccess = {
                         _uiState.value = _uiState.value.copy(confirmingBookingId = null)
                         loadAll()
                     },
                     onFailure = { e ->
-                        _uiState.value = _uiState.value.copy(
-                            confirmingBookingId = null,
-                            error = e.message
-                        )
+                        _uiState.value = _uiState.value.copy(confirmingBookingId = null, error = e.message)
                     }
                 )
             }
@@ -275,27 +272,22 @@
         }
 
         fun rejectWithdrawal(withdrawalId: String) {
-            _uiState.value = _uiState.value.copy(actionLoading = withdrawalId)
+            // Find the withdrawal object from current state so we have currency/amount
+            val withdrawal = _uiState.value.withdrawal.find { it.id == withdrawalId } ?: return
 
+            _uiState.value = _uiState.value.copy(actionLoading = withdrawalId)
             viewModelScope.launch {
                 val result = withdrawalRepository.rejectWithdrawal(
-                    withdrawalId,
-                    "Rejected by admin"
+                    withdrawal = withdrawal,
+                    note = "Rejected by admin"
                 )
-
                 result.fold(
                     onSuccess = {
-                        _uiState.value = _uiState.value.copy(
-                            actionLoading = null,
-                            successMessage = "Withdrawal rejected"
-                        )
+                        _uiState.value = _uiState.value.copy(actionLoading = null, successMessage = "Withdrawal rejected")
                         loadAll()
                     },
                     onFailure = {
-                        _uiState.value = _uiState.value.copy(
-                            actionLoading = null,
-                            error = it.message
-                        )
+                        _uiState.value = _uiState.value.copy(actionLoading = null, error = it.message)
                     }
                 )
             }

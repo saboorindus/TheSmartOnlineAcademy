@@ -1,6 +1,7 @@
 package com.echologics.thesmartonlineacademy.data.repository
 
 import android.content.Context
+import com.echologics.thesmartonlineacademy.R
 import com.echologics.thesmartonlineacademy.utils.SupabaseClient
 import com.echologics.thesmartonlineacademy.data.model.AdminQrConfig
 import com.echologics.thesmartonlineacademy.data.model.AdminStats
@@ -27,16 +28,12 @@ class AdminRepository(private val context: Context) {
     private val authRepository = AuthRepository()
 
 
-    private val oneSignalAppId: String? by lazy {
-        context.getString(
-            context.resources.getIdentifier("onesignal_app_id", "string", context.packageName)
-        )
+    private val oneSignalAppId: String by lazy {
+        context.getString(R.string.onesignal_app_id)
     }
 
-    private val oneSignalRestKey: String? by lazy {
-        context.getString(
-            context.resources.getIdentifier("onesignal_rest_api_key", "string", context.packageName)
-        )
+    private val oneSignalRestKey: String by lazy {
+        context.getString(R.string.onesignal_rest_api_key)
     }
 
     // ── Stats ─────────────────────────────────────────────────────────────────
@@ -128,18 +125,16 @@ class AdminRepository(private val context: Context) {
             )
             batch.commit().await()
 
-            if (oneSignalAppId != null && oneSignalRestKey != null) {
-                val teacherPlayerId = authRepository.getPlayerIdForUser(uid)
-                val (title, body) = OneSignalHelper.teacherApprovedPayload()
-                OneSignalHelper.sendToPlayer(
-                    restApiKey = oneSignalRestKey!!,
-                    appId = oneSignalAppId!!,
-                    playerId = teacherPlayerId,
-                    title = title,
-                    body = body,
-                    data = mapOf("type" to "profile_approved")
-                )
-            }
+            val teacherPlayerId = authRepository.getPlayerIdForUser(uid)
+            val (title, body) = OneSignalHelper.teacherApprovedPayload()
+            OneSignalHelper.sendToPlayer(
+                restApiKey = oneSignalRestKey,
+                appId = oneSignalAppId,
+                playerId = teacherPlayerId,
+                title = title,
+                body = body,
+                data = mapOf("type" to "profile_approved")
+            )
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -172,18 +167,16 @@ class AdminRepository(private val context: Context) {
             )
             batch.commit().await()
 
-            if (oneSignalAppId != null && oneSignalRestKey != null) {
-                val teacherPlayerId = authRepository.getPlayerIdForUser(uid)
-                val (title, body) = OneSignalHelper.teacherRejectedPayload(reason)
-                OneSignalHelper.sendToPlayer(
-                    restApiKey = oneSignalRestKey!!,
-                    appId = oneSignalAppId!!,
-                    playerId = teacherPlayerId,
-                    title = title,
-                    body = body,
-                    data = mapOf("type" to "profile_rejected")
-                )
-            }
+            val teacherPlayerId = authRepository.getPlayerIdForUser(uid)
+            val (title, body) = OneSignalHelper.teacherRejectedPayload(reason)
+            OneSignalHelper.sendToPlayer(
+                restApiKey = oneSignalRestKey,
+                appId = oneSignalAppId,
+                playerId = teacherPlayerId,
+                title = title,
+                body = body,
+                data = mapOf("type" to "profile_rejected")
+            )
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -207,8 +200,49 @@ class AdminRepository(private val context: Context) {
 
     suspend fun cancelBookingAdmin(bookingId: String): Result<Unit> {
         return try {
-            bookingsCol.document(bookingId)
-                .update("status", BookingStatus.CANCELLED.name).await()
+            val snap = bookingsCol.document(bookingId).get().await()
+            val booking = snap.toObject(Booking::class.java)
+
+            bookingsCol.document(bookingId).update("status", BookingStatus.CANCELLED.name).await()
+
+            booking?.let { b ->
+                // ── Notify teacher ────────────────────────────────────────────
+                val teacherPlayerId = runCatching {
+                    authRepository.getPlayerIdForUser(b.teacherId)
+                }.getOrDefault("")
+
+                val (teacherTitle, teacherBody) = OneSignalHelper.bookingCancelledForTeacherPayload(
+                    studentName = b.studentName,
+                    subject = b.subject
+                )
+                OneSignalHelper.sendToPlayer(
+                    restApiKey = oneSignalRestKey,
+                    appId = oneSignalAppId,
+                    playerId = teacherPlayerId,
+                    title = teacherTitle,
+                    body = teacherBody,
+                    data = mapOf("type" to "booking_cancelled", "bookingId" to bookingId)
+                )
+
+                // ── Notify student ────────────────────────────────────────────
+                val studentPlayerId = runCatching {
+                    authRepository.getPlayerIdForUser(b.studentId)
+                }.getOrDefault("")
+
+                val (studentTitle, studentBody) = OneSignalHelper.bookingCancelledForStudentPayload(
+                    teacherName = b.teacherName,
+                    subject = b.subject
+                )
+                OneSignalHelper.sendToPlayer(
+                    restApiKey = oneSignalRestKey,
+                    appId = oneSignalAppId,
+                    playerId = studentPlayerId,
+                    title = studentTitle,
+                    body = studentBody,
+                    data = mapOf("type" to "booking_cancelled", "bookingId" to bookingId)
+                )
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -285,11 +319,11 @@ class AdminRepository(private val context: Context) {
             val snapshot = usersCol.document(uid)
                 .collection("notifications")
                 .whereEqualTo("type", "APPROVAL")
-                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(1)
                 .get().await()
             snapshot.documents.firstOrNull()?.data
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

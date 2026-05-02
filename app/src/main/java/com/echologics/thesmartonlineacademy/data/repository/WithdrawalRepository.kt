@@ -73,18 +73,49 @@ class WithdrawalRepository(private val context: Context? = null) {
 
             withdrawalsCol.document(id).set(data).await()
 
-            val (currency,amount) = OneSignalHelper.withdrawalRequestedPayload(
-                currency = withdrawal.currency,
-                amount = withdrawal.amount
-            )
+            // ✅ Teacher notification
+            val (teacherTitle, teacherBody) =
+                OneSignalHelper.withdrawalRequestedPayload(
+                    currency = withdrawal.currency,
+                    amount = withdrawal.amount
+                )
 
             OneSignalHelper.sendToPlayer(
                 restApiKey = oneSignalRestKey ?: "",
                 appId = oneSignalAppId ?: "",
                 playerId = withdrawal.teacherId,
-                title = "Withdrawal request submitted",
-                body = "Your withdrawal of $currency $amount is under review"
+                title = teacherTitle,
+                body = teacherBody
             )
+
+            // ── Admin notification ────────────────────────────────────────────────────
+            val (adminTitle, adminBody) = OneSignalHelper.withdrawalRequestedAdminPayload(
+                teacherName = withdrawal.teacherName,
+                currency = withdrawal.currency,
+                amount = withdrawal.amount,
+                method = withdrawal.paymentMethod
+            )
+
+            val adminUids = listOf(
+                "dOz1ggsPB1SGi6tXsDrwuTlKEZw2",
+                "XSPMvy6yDGWcnDDBInsMlqwUn732"
+            )
+
+            for (adminUid in adminUids) {
+                val adminPlayerId = runCatching {
+                    authRepository.getPlayerIdForUser(adminUid)
+                }.getOrDefault("")
+
+                OneSignalHelper.sendToPlayer(
+                    restApiKey = oneSignalRestKey ?: "",
+                    appId = oneSignalAppId ?: "",
+                    playerId = adminPlayerId,
+                    title = adminTitle,
+                    body = adminBody,
+                    data = mapOf("type" to "admin_withdrawal_request")
+                )
+            }
+
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -127,15 +158,23 @@ class WithdrawalRepository(private val context: Context? = null) {
                 )
             ).await()
 
-            // Push notification to teacher
             if (oneSignalAppId != null && oneSignalRestKey != null) {
-                val teacherPlayerId = authRepository.getPlayerIdForUser(teacherId)
+                val teacherPlayerId = runCatching {
+                    authRepository.getPlayerIdForUser(teacherId)
+                }.getOrDefault("")
+
+                // ✅ Use the payload builder instead of hardcoded strings
+                val (title, body) = OneSignalHelper.withdrawalPaidPayload(
+                    currency = currency,
+                    amount = amount
+                )
+
                 OneSignalHelper.sendToPlayer(
                     restApiKey = oneSignalRestKey!!,
                     appId = oneSignalAppId!!,
                     playerId = teacherPlayerId,
-                    title = "Withdrawal paid!",
-                    body = "Your withdrawal of $currency $amount has been sent to your account.",
+                    title = title,
+                    body = body,
                     data = mapOf("type" to "withdrawal_paid", "withdrawalId" to withdrawalId)
                 )
             }
@@ -146,14 +185,36 @@ class WithdrawalRepository(private val context: Context? = null) {
         }
     }
 
-    suspend fun rejectWithdrawal(withdrawalId: String, note: String): Result<Unit> {
+    suspend fun rejectWithdrawal(withdrawal: Withdrawal, note: String): Result<Unit> {
         return try {
-            withdrawalsCol.document(withdrawalId).update(
+            withdrawalsCol.document(withdrawal.id).update(
                 mapOf(
                     "status" to WithdrawalStatus.REJECTED.name,
                     "adminNote" to note
                 )
             ).await()
+
+            if (oneSignalAppId != null && oneSignalRestKey != null) {
+                val teacherPlayerId = runCatching {
+                    authRepository.getPlayerIdForUser(withdrawal.teacherId)
+                }.getOrDefault("")
+
+                val (title, body) = OneSignalHelper.withdrawalRejectedPayload(
+                    currency = withdrawal.currency,
+                    amount = withdrawal.amount,
+                    reason = note
+                )
+
+                OneSignalHelper.sendToPlayer(
+                    restApiKey = oneSignalRestKey!!,
+                    appId = oneSignalAppId!!,
+                    playerId = teacherPlayerId,
+                    title = title,
+                    body = body,
+                    data = mapOf("type" to "withdrawal_rejected", "withdrawalId" to withdrawal.id)
+                )
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

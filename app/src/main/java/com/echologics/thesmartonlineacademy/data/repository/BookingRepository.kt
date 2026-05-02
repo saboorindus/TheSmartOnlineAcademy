@@ -2,6 +2,7 @@ package com.echologics.thesmartonlineacademy.data.repository
 
 
 import android.content.Context
+import com.echologics.thesmartonlineacademy.R
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.BookingStatus
 import com.echologics.thesmartonlineacademy.utils.OneSignalHelper
@@ -17,11 +18,11 @@ class BookingRepository(private val context: Context) {
     private val authRepository = AuthRepository()
 
     private val oneSignalAppId: String by lazy {
-        context.getString(context.resources.getIdentifier("onesignal_app_id", "string", context.packageName))
+        context.getString(R.string.onesignal_app_id)
     }
 
     private val oneSignalRestKey: String by lazy {
-        context.getString(context.resources.getIdentifier("onesignal_rest_api_key", "string", context.packageName))
+        context.getString(R.string.onesignal_rest_api_key)
     }
 
     suspend fun isSlotAvailable(
@@ -43,7 +44,7 @@ class BookingRepository(private val context: Context) {
                 ))
                 .get().await()
             snapshot.isEmpty  // true = slot is free
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false // fail-safe: treat as unavailable on error
         }
     }
@@ -134,13 +135,17 @@ class BookingRepository(private val context: Context) {
         }
     }
 
-    // Teacher confirms payment received
-    suspend fun confirmPayment(
-        bookingId: String,
-        teacherName: String,
-        subject: String
-    ): Result<Unit> {
+    // Admin confirms payment received
+    suspend fun confirmPayment(bookingId: String): Result<Unit> {
         return try {
+            // Single fetch — get everything we need before writing
+            val bookingDoc = bookingsCol.document(bookingId).get().await()
+            val studentId = bookingDoc.getString("studentId") ?: ""
+            val teacherId = bookingDoc.getString("teacherId") ?: ""
+            val teacherName = bookingDoc.getString("teacherName") ?: ""
+            val studentName = bookingDoc.getString("studentName") ?: ""
+            val subject = bookingDoc.getString("subject") ?: ""
+
             bookingsCol.document(bookingId).update(
                 mapOf(
                     "status" to BookingStatus.CONFIRMED.name,
@@ -148,12 +153,12 @@ class BookingRepository(private val context: Context) {
                 )
             ).await()
 
-            // Get student ID from the booking
-            val bookingDoc = bookingsCol.document(bookingId).get().await()
-            val studentId = bookingDoc.getString("studentId") ?: ""
+            // ── Notify student ────────────────────────────────────────────────────
+            val studentPlayerId = runCatching {
+                authRepository.getPlayerIdForUser(studentId)
+            }.getOrDefault("")
 
-            val studentPlayerId = authRepository.getPlayerIdForUser(studentId)
-            val (title, body) = OneSignalHelper.paymentConfirmedPayload(
+            val (studentTitle, studentBody) = OneSignalHelper.paymentConfirmedPayload(
                 teacherName = teacherName,
                 subject = subject
             )
@@ -161,9 +166,27 @@ class BookingRepository(private val context: Context) {
                 restApiKey = oneSignalRestKey,
                 appId = oneSignalAppId,
                 playerId = studentPlayerId,
-                title = title,
-                body = body,
+                title = studentTitle,
+                body = studentBody,
                 data = mapOf("type" to "payment_confirmed", "bookingId" to bookingId)
+            )
+
+            // ── Notify teacher ────────────────────────────────────────────────────
+            val teacherPlayerId = runCatching {
+                authRepository.getPlayerIdForUser(teacherId)
+            }.getOrDefault("")
+
+            val (teacherTitle, teacherBody) = OneSignalHelper.bookingConfirmedForTeacherPayload(
+                studentName = studentName,
+                subject = subject
+            )
+            OneSignalHelper.sendToPlayer(
+                restApiKey = oneSignalRestKey,
+                appId = oneSignalAppId,
+                playerId = teacherPlayerId,
+                title = teacherTitle,
+                body = teacherBody,
+                data = mapOf("type" to "booking_confirmed", "bookingId" to bookingId)
             )
 
             Result.success(Unit)
@@ -212,14 +235,14 @@ class BookingRepository(private val context: Context) {
         }
     }
 
-    suspend fun getBookingById(bookingId: String): Result<Booking> {
-        return try {
-            val doc = bookingsCol.document(bookingId).get().await()
-            val booking = doc.toObject(Booking::class.java)
-                ?: return Result.failure(Exception("Booking not found"))
-            Result.success(booking)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+//    suspend fun getBookingById(bookingId: String): Result<Booking> {
+//        return try {
+//            val doc = bookingsCol.document(bookingId).get().await()
+//            val booking = doc.toObject(Booking::class.java)
+//                ?: return Result.failure(Exception("Booking not found"))
+//            Result.success(booking)
+//        } catch (e: Exception) {
+//            Result.failure(e)
+//        }
+//    }
 }

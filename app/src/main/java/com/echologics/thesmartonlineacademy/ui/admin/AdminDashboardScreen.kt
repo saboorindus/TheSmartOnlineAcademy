@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -395,7 +396,8 @@ private fun BookingsTab(uiState: AdminUiState, viewModel: AdminDashboardViewMode
             items(filtered, key = { it.id }) { booking ->
                 AdminBookingCard(
                     booking = booking,
-                    isProcessing = uiState.actionLoading == booking.id || uiState.confirmingBookingId == booking.id,
+                    isCancelling = uiState.actionLoading == booking.id,       // ← computed here
+                    isConfirming = uiState.confirmingBookingId == booking.id, // ← computed here
                     onCancel = { viewModel.cancelBooking(booking.id) },
                     onConfirmPayment = { viewModel.confirmPayment(booking) }
                 )
@@ -405,7 +407,13 @@ private fun BookingsTab(uiState: AdminUiState, viewModel: AdminDashboardViewMode
 }
 
 @Composable
-private fun AdminBookingCard(booking: Booking, isProcessing: Boolean, onCancel: () -> Unit, onConfirmPayment: () -> Unit) {
+private fun AdminBookingCard(
+    booking: Booking,
+    isCancelling: Boolean,   // ← replaces uiState.actionLoading == booking.id
+    isConfirming: Boolean,   // ← replaces uiState.confirmingBookingId == booking.id
+    onCancel: () -> Unit,
+    onConfirmPayment: () -> Unit
+) {
     val statusColor = when (booking.status) {
         BookingStatus.CONFIRMED         -> Teal
         BookingStatus.PAYMENT_SUBMITTED -> Amber
@@ -439,7 +447,7 @@ private fun AdminBookingCard(booking: Booking, isProcessing: Boolean, onCancel: 
             }
             if (booking.status != BookingStatus.CANCELLED && booking.status != BookingStatus.COMPLETED) {
                 Spacer(Modifier.height(8.dp))
-                if (isProcessing) {
+                if (isCancelling) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Purple, strokeWidth = 2.dp)
                 } else {
                     TextButton(onClick = onCancel, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
@@ -447,9 +455,10 @@ private fun AdminBookingCard(booking: Booking, isProcessing: Boolean, onCancel: 
                     }
                 }
             }
+
             if (booking.status == BookingStatus.PAYMENT_SUBMITTED) {
                 Spacer(Modifier.height(8.dp))
-                if (isProcessing) {
+                if (isConfirming) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Purple, strokeWidth = 2.dp)
                 } else {
                     Button(onClick = onConfirmPayment, colors = ButtonDefaults.buttonColors(containerColor = Teal)) {
@@ -814,7 +823,7 @@ private fun PaymentsConfig(
                         value = adminNoteInput,
                         onValueChange = { adminNoteInput = it },
                         label = { Text("Admin Note (optional)") },
-                        leadingIcon = { Icon(Icons.Default.Notes, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3
