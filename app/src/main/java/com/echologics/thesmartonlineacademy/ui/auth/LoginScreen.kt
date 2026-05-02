@@ -3,9 +3,6 @@ package com.echologics.thesmartonlineacademy.ui.auth
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Block
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,11 +11,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -169,31 +168,27 @@ fun LoginScreen(
             ) {
                 append("By continuing, you agree to our ")
             }
-            pushStringAnnotation(tag = "TERMS", annotation = "terms")
-            withStyle(
-                style = SpanStyle(
-                    fontSize = 12.sp,
-                    color = Purple,
-                    fontWeight = FontWeight.SemiBold
+            withLink(
+                LinkAnnotation.Clickable(
+                    tag = "TERMS",
+                    linkInteractionListener = { showTermsDialog = true }
                 )
             ) {
-                append("Terms and Conditions")
-            }
-            pop()
-        }
-
-        ClickableText(
-            text = termsAnnotatedString,
-            style = TextStyle(textAlign = TextAlign.Center),
-            onClick = { offset ->
-                termsAnnotatedString.getStringAnnotations(
-                    tag = "TERMS",
-                    start = offset,
-                    end = offset
-                ).firstOrNull()?.let {
-                    showTermsDialog = true
+                withStyle(
+                    style = SpanStyle(
+                        fontSize = 12.sp,
+                        color = Purple,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                ) {
+                    append("Terms and Conditions")
                 }
             }
+        }
+
+        Text(
+            text = termsAnnotatedString,
+            style = TextStyle(textAlign = TextAlign.Center)
         )
 
         // Disabled account dialog
