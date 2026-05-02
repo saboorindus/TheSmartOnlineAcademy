@@ -76,7 +76,10 @@ fun SessionScreen(
     }
 
     LaunchedEffect(uiState.isEnded) {
-        if (uiState.isEnded) onSessionEnded()
+        if (uiState.isEnded) {
+            sessionViewModel.stopSessionService(context)
+            onSessionEnded()
+        }
     }
 
     DisposableEffect(Unit) {
@@ -96,7 +99,7 @@ fun SessionScreen(
                 TextButton(
                     onClick = {
                         showEndConfirm = false
-                        sessionViewModel.endSession()
+                        sessionViewModel.endSession(context)
                     }
                 ) {
                     Text("End session", color = MaterialTheme.colorScheme.error)

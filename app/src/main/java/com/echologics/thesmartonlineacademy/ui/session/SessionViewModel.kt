@@ -3,7 +3,6 @@ package com.echologics.thesmartonlineacademy.ui.session
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.model.Booking
@@ -11,6 +10,7 @@ import com.echologics.thesmartonlineacademy.data.model.ChatMessage
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.data.repository.SessionRepository
 import com.echologics.thesmartonlineacademy.services.ScreenCaptureService
+import com.echologics.thesmartonlineacademy.services.SessionForegroundService
 import com.google.firebase.auth.FirebaseAuth
 import io.agora.rtc2.ChannelMediaOptions
 import io.agora.rtc2.Constants
@@ -33,7 +33,7 @@ import java.net.URL
 private const val AGORA_APP_ID = "0bcd1a1d17b44aeeba473215676773fa"
 private const val SUPABASE_FUNCTION_URL =
     "https://vilzjwakvylaihhwitwi.supabase.co/functions/v1/generate-agora-token"
-private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpbHpqd2FrdnlsYWloaHdpdHdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDc5MjMsImV4cCI6MjA5MTkyMzkyM30.UmsdUX-f7zAHo5z431eDXAOpWU7fS4A4nsuZYXagrx4" // ← paste your anon key here
+private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpbHpqd2FrdnlsYWloaHdpdHdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDc5MjMsImV4cCI6MjA5MTkyMzkyM30.UmsdUX-f7zAHo5z431eDXAOpWU7fS4A4nsuZYXagrx4"
 
 data class SessionUiState(
     val booking: Booking? = null,
@@ -68,12 +68,11 @@ class SessionViewModel(
 
     private var rtcEngine: RtcEngine? = null
     private var chatListener: com.google.firebase.firestore.ListenerRegistration? = null
-    private var handsListener: com.google.firebase.firestore.ListenerRegistration? = null  // ← add
+    private var handsListener: com.google.firebase.firestore.ListenerRegistration? = null
 
     private val currentUid get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     private val eventHandler = object : IRtcEngineEventHandler() {
-
         override fun onJoinChannelSuccess(channel: String, uid: Int, elapsed: Int) {
             _uiState.value = _uiState.value.copy(
                 localUid = uid,
@@ -130,17 +129,13 @@ class SessionViewModel(
                     connectTimeout = 10_000
                     readTimeout = 10_000
                 }
-
                 val body = JSONObject().apply {
                     put("channelName", channelName)
                     put("uid", uid)
                 }.toString()
-
                 conn.outputStream.use { it.write(body.toByteArray()) }
-
                 val response = conn.inputStream.bufferedReader().use { it.readText() }
                 conn.disconnect()
-
                 JSONObject(response).getString("token")
             } catch (e: Exception) {
                 null
@@ -152,8 +147,9 @@ class SessionViewModel(
     fun initSession(context: Context, booking: Booking, role: SessionRole) {
         _uiState.value = _uiState.value.copy(booking = booking, role = role)
         initAgoraEngine(context)
+        startSessionService(context)
         viewModelScope.launch {
-            val uid = currentUid.hashCode() and 0x7FFFFFFF // convert uid string to positive int
+            val uid = currentUid.hashCode() and 0x7FFFFFFF
             val token = fetchAgoraToken(booking.agoraChannelName, uid)
             if (token == null) {
                 _uiState.value = _uiState.value.copy(error = "Failed to fetch token. Check your connection.")
@@ -199,6 +195,21 @@ class SessionViewModel(
             autoSubscribeVideo = true
         }
         rtcEngine?.joinChannel(token, channelName, uid, options)
+    }
+
+    // ── Session service ───────────────────────────────────────────────────────
+
+    fun startSessionService(context: Context) {
+        val intent = Intent(context, SessionForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    fun stopSessionService(context: Context) {
+        context.stopService(Intent(context, SessionForegroundService::class.java))
     }
 
     // ── Video controls ────────────────────────────────────────────────────────
@@ -281,6 +292,8 @@ class SessionViewModel(
         }
     }
 
+    // ── Raise hand ────────────────────────────────────────────────────────────
+
     fun raiseHand() {
         val bookingId = _uiState.value.booking?.id ?: return
         val raised = !_uiState.value.hasRaisedHand
@@ -297,13 +310,15 @@ class SessionViewModel(
         }
     }
 
+    // ── PiP ───────────────────────────────────────────────────────────────────
+
     fun onPipModeChanged(inPip: Boolean) {
         _uiState.value = _uiState.value.copy(isInPipMode = inPip)
     }
 
+    // ── Screen share ──────────────────────────────────────────────────────────
 
     fun startScreenShare(resultCode: Int, data: android.content.Intent, context: Context) {
-        // Service is already started by MainActivity before this is called
         val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE)
                 as android.media.projection.MediaProjectionManager
         val mediaProjection = projectionManager.getMediaProjection(resultCode, data)
@@ -312,14 +327,12 @@ class SessionViewModel(
             return
         }
         rtcEngine?.setExternalMediaProjection(mediaProjection)
-
         rtcEngine?.startScreenCapture(
             ScreenCaptureParameters().apply {
                 captureVideo = true
                 captureAudio = false
             }
         )
-
         val options = ChannelMediaOptions().apply {
             publishScreenCaptureVideo = true
             publishCameraTrack = false
@@ -328,7 +341,6 @@ class SessionViewModel(
             autoSubscribeVideo = true
         }
         rtcEngine?.updateChannelMediaOptions(options)
-
         _uiState.value = _uiState.value.copy(
             isScreenSharing = true,
             isCameraOff = true,
@@ -346,7 +358,7 @@ class SessionViewModel(
             autoSubscribeVideo = true
         }
         rtcEngine?.updateChannelMediaOptions(options)
-        context.stopService(android.content.Intent(context, com.echologics.thesmartonlineacademy.services.ScreenCaptureService::class.java))
+        context.stopService(Intent(context, ScreenCaptureService::class.java))
         _uiState.value = _uiState.value.copy(
             isScreenSharing = false,
             isCameraOff = false,
@@ -356,9 +368,11 @@ class SessionViewModel(
 
     // ── End session ───────────────────────────────────────────────────────────
 
-    fun endSession() {
+    fun endSession(context: Context) {
         val bookingId = _uiState.value.booking?.id ?: return
         rtcEngine?.leaveChannel()
+        stopSessionService(context)
+        context.stopService(Intent(context, ScreenCaptureService::class.java))
         viewModelScope.launch {
             sessionRepository.markSessionCompleted(bookingId)
             _uiState.value = _uiState.value.copy(isEnded = true)

@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
         screenShareCallback = null
     }
 
+
     fun requestScreenCapture(onResult: (Int, android.content.Intent) -> Unit) {
         screenShareCallback = onResult
 
