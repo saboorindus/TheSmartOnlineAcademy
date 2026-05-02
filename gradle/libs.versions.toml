@@ -4,6 +4,7 @@ coilCompose = "2.7.0"
 credentials = "1.6.0"
 credentialsPlayServicesAuth = "1.6.0"
 firebaseBom = "33.5.1"
+fullSdk = "4.6.3"
 googleid = "1.2.0"
 gson = "2.13.2"
 kotlin = "2.0.21"
@@ -35,6 +36,7 @@ coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose"
 firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+full-sdk = { module = "io.agora.rtc:full-sdk", version.ref = "fullSdk" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

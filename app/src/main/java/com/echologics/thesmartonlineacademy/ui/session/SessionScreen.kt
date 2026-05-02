@@ -135,7 +135,9 @@ fun SessionScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { view ->
-                    sessionViewModel.setupRemoteVideo(view, uiState.remoteUid!!)
+                    uiState.remoteUid?.let { uid ->        // ← null check
+                        sessionViewModel.setupRemoteVideo(view, uid)
+                    }
                 }
             )
         } else {
@@ -276,6 +278,7 @@ fun SessionScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .background(Color(0xCC000000))
                     .padding(horizontal = 12.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
