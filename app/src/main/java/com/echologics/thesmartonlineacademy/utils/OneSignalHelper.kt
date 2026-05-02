@@ -119,7 +119,7 @@ object OneSignalHelper {
     fun paymentSubmittedPayload(studentName: String, amount: Int) =
         Pair(
             "Payment submitted",
-            "$studentName has submitted payment of $amount. Please verify and confirm."
+            "$studentName has submitted payment of $$amount. Our team will verify and confirm shortly."
         )
 
     /** Student receives notice that admin confirmed their payment → booking active */
