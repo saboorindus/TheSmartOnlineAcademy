@@ -62,14 +62,8 @@ fun SessionScreen(
                 perms[Manifest.permission.RECORD_AUDIO] == true
     }
 
-    LaunchedEffect(Unit) {
-        permissionLauncher.launch(
-            arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
-        )
-    }
-
     LaunchedEffect(permissionsGranted) {
-        if (permissionsGranted) {
+        if (permissionsGranted && !uiState.isSessionActive) {  // ← add guard
             sessionViewModel.initSession(context, booking, role)
             whiteboardViewModel.initSync(booking.id, FirebaseAuth.getInstance().currentUser?.uid ?: "")
         }
@@ -86,6 +80,24 @@ fun SessionScreen(
         MainActivity.activePipSession = sessionViewModel
         onDispose {
             MainActivity.activePipSession = null
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val cameraGranted = androidx.core.content.ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CAMERA
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        val audioGranted = androidx.core.content.ContextCompat.checkSelfPermission(
+            context, Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (cameraGranted && audioGranted) {
+            permissionsGranted = true
+        } else {
+            permissionLauncher.launch(
+                arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+            )
         }
     }
 
@@ -130,19 +142,21 @@ fun SessionScreen(
 
         // Remote video — always visible, even in PiP
         if (uiState.isRemoteVideoVisible && uiState.remoteUid != null) {
-            AndroidView(
-                factory = { ctx ->
-                    SurfaceView(ctx).also { view ->
-                        sessionViewModel.setupRemoteVideo(view, uiState.remoteUid!!)
+            key(uiState.remoteVideoKey) {
+                AndroidView(
+                    factory = { ctx ->
+                        SurfaceView(ctx).also { view ->
+                            sessionViewModel.setupRemoteVideo(view, uiState.remoteUid!!)
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    update = { view ->
+                        uiState.remoteUid?.let { uid ->
+                            sessionViewModel.setupRemoteVideo(view, uid)
+                        }
                     }
-                },
-                modifier = Modifier.fillMaxSize(),
-                update = { view ->
-                    uiState.remoteUid?.let { uid ->        // ← null check
-                        sessionViewModel.setupRemoteVideo(view, uid)
-                    }
-                }
-            )
+                )
+            }
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -166,14 +180,16 @@ fun SessionScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color(0xFF2A2A2A))
                 ) {
-                    AndroidView(
-                        factory = { ctx ->
-                            SurfaceView(ctx).also { view ->
-                                sessionViewModel.setupLocalVideo(view)
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    key(uiState.isCameraOff) {
+                        AndroidView(
+                            factory = { ctx ->
+                                SurfaceView(ctx).also { view ->
+                                    sessionViewModel.setupLocalVideo(view)
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
 

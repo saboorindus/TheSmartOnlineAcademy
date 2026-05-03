@@ -1,15 +1,22 @@
 package com.echologics.thesmartonlineacademy
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.echologics.thesmartonlineacademy.data.model.User
 import com.echologics.thesmartonlineacademy.navigation.AppNavigation
+import com.echologics.thesmartonlineacademy.navigation.NavArgs
 import com.echologics.thesmartonlineacademy.navigation.Screen
 import com.echologics.thesmartonlineacademy.notifications.NotificationHelper
 import com.echologics.thesmartonlineacademy.ui.common.components.DisabledAccountDialog
@@ -18,15 +25,17 @@ import com.echologics.thesmartonlineacademy.ui.session.SessionViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import androidx.core.content.edit
+import androidx.core.net.toUri
 
 class MainActivity : ComponentActivity() {
 
     private var showDisabledDialogState: MutableState<Boolean>? = null
 
-    private var screenShareCallback: ((Int, android.content.Intent) -> Unit)? = null
+    private var screenShareCallback: ((Int, Intent) -> Unit)? = null
 
     private val screenCaptureLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK && result.data != null) {
             screenShareCallback?.invoke(result.resultCode, result.data!!)
@@ -35,21 +44,8 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    fun requestScreenCapture(onResult: (Int, android.content.Intent) -> Unit) {
+    fun requestScreenCapture(onResult: (Int, Intent) -> Unit) {
         screenShareCallback = onResult
-
-        // Start foreground service BEFORE showing the permission dialog
-        // Android 10+ requires it to already be running when getMediaProjection() is called
-        val serviceIntent = android.content.Intent(
-            this,
-            com.echologics.thesmartonlineacademy.services.ScreenCaptureService::class.java
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
-
         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
         screenCaptureLauncher.launch(mgr.createScreenCaptureIntent())
     }
@@ -65,10 +61,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             TheSmartOnlineAcademyTheme {
+                val navController = androidx.navigation.compose.rememberNavController()
                 var dest by remember { mutableStateOf<String?>(null) }
                 var showDisabledDialog by remember { mutableStateOf(false) }
 
-                // Store reference so onResume can update it directly
                 showDisabledDialogState = remember { mutableStateOf(false) }
                 showDisabledDialog = showDisabledDialogState!!.value
 
@@ -79,6 +75,32 @@ class MainActivity : ComponentActivity() {
                     startDestination = destination
                 }
 
+                LaunchedEffect(dest) {
+                    if (dest != null) {
+                        val prefs = getSharedPreferences("active_session", MODE_PRIVATE)
+                        val bookingId = prefs.getString("booking_id", null)
+                        val roleStr = prefs.getString("role", null)
+                        if (bookingId != null && roleStr != null) {
+                            try {
+                                val doc = FirebaseFirestore.getInstance()
+                                    .collection("bookings")
+                                    .document(bookingId)
+                                    .get()
+                                    .await()
+                                val booking = doc.toObject(com.echologics.thesmartonlineacademy.data.model.Booking::class.java)
+                                if (booking != null && booking.status.name != "COMPLETED") {
+                                    NavArgs.sessionBooking = booking
+                                    navController.navigate(Screen.Session.createRoute(roleStr.lowercase()))
+                                } else {
+                                    prefs.edit { clear() }
+                                }
+                            } catch (_: Exception) {
+                                prefs.edit { clear() }
+                            }
+                        }
+                    }
+                }
+
                 if (showDisabledDialog) {
                     DisabledAccountDialog(
                         onDismiss = { showDisabledDialogState?.value = false }
@@ -86,13 +108,27 @@ class MainActivity : ComponentActivity() {
                 }
 
                 dest?.let {
-                    AppNavigation(startDestination = it)
+                    AppNavigation(navController = navController, startDestination = it)
                 }
             }
         }
 
         NotificationHelper.createChannel(this)
+        requestIgnoreBatteryOptimization()
     }
+    @SuppressLint("BatteryLife")
+    private fun requestIgnoreBatteryOptimization() {
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+            val intent = Intent(
+                android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+            ).apply {
+                data = "package:$packageName".toUri()
+            }
+            startActivity(intent)
+        }
+    }
+
 
     private var isFirstResume = true
 
@@ -102,6 +138,8 @@ class MainActivity : ComponentActivity() {
             isFirstResume = false
             return
         }
+        activePipSession?.onReturnFromBackground()
+        Log.d("SessionReturn", "onResume called — activePipSession=${activePipSession != null}, isSessionActive=${activePipSession?.uiState?.value?.isSessionActive}")
         checkIfUserDisabled()
     }
 

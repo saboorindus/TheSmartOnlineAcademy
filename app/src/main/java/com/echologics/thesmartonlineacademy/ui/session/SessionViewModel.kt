@@ -9,7 +9,6 @@ import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.ChatMessage
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.data.repository.SessionRepository
-import com.echologics.thesmartonlineacademy.services.ScreenCaptureService
 import com.echologics.thesmartonlineacademy.services.SessionForegroundService
 import com.google.firebase.auth.FirebaseAuth
 import io.agora.rtc2.ChannelMediaOptions
@@ -29,6 +28,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import androidx.core.content.edit
 
 private const val AGORA_APP_ID = "0bcd1a1d17b44aeeba473215676773fa"
 private const val SUPABASE_FUNCTION_URL =
@@ -71,6 +71,7 @@ class SessionViewModel(
     private var handsListener: com.google.firebase.firestore.ListenerRegistration? = null
 
     private val currentUid get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    private var reconnectJob: kotlinx.coroutines.Job? = null
 
     private val eventHandler = object : IRtcEngineEventHandler() {
         override fun onJoinChannelSuccess(channel: String, uid: Int, elapsed: Int) {
@@ -82,6 +83,7 @@ class SessionViewModel(
         }
 
         override fun onUserJoined(uid: Int, elapsed: Int) {
+            reconnectJob?.cancel()
             _uiState.value = _uiState.value.copy(
                 remoteUid = uid,
                 isRemoteVideoVisible = true
@@ -89,11 +91,15 @@ class SessionViewModel(
         }
 
         override fun onUserOffline(uid: Int, reason: Int) {
-            _uiState.value = _uiState.value.copy(
-                remoteUid = null,
-                isRemoteVideoVisible = false,
-                connectionState = "Other participant left"
-            )
+            reconnectJob?.cancel()
+            reconnectJob = viewModelScope.launch {
+                kotlinx.coroutines.delay(10_000)
+                _uiState.value = _uiState.value.copy(
+                    remoteUid = null,
+                    isRemoteVideoVisible = false,
+                    connectionState = "Other participant left"
+                )
+            }
         }
 
         override fun onConnectionStateChanged(state: Int, reason: Int) {
@@ -145,7 +151,15 @@ class SessionViewModel(
     // ── Session init ──────────────────────────────────────────────────────────
 
     fun initSession(context: Context, booking: Booking, role: SessionRole) {
+
         _uiState.value = _uiState.value.copy(booking = booking, role = role)
+
+        context.getSharedPreferences("active_session", Context.MODE_PRIVATE)
+            .edit {
+                putString("booking_id", booking.id)
+                    .putString("role", role.name)
+            }
+
         initAgoraEngine(context)
         startSessionService(context)
         viewModelScope.launch {
@@ -223,6 +237,16 @@ class SessionViewModel(
     fun setupRemoteVideo(view: android.view.SurfaceView, remoteUid: Int) {
         val canvas = VideoCanvas(view, VideoCanvas.RENDER_MODE_HIDDEN, remoteUid)
         rtcEngine?.setupRemoteVideo(canvas)
+    }
+
+    fun onReturnFromBackground() {
+        if (_uiState.value.isSessionActive) {
+            _uiState.value = _uiState.value.copy(
+                connectionState = "Connected",
+                isRemoteVideoVisible = _uiState.value.remoteUid != null,
+                remoteVideoKey = _uiState.value.remoteVideoKey + 1
+            )
+        }
     }
 
     fun toggleMute() {
@@ -318,7 +342,7 @@ class SessionViewModel(
 
     // ── Screen share ──────────────────────────────────────────────────────────
 
-    fun startScreenShare(resultCode: Int, data: android.content.Intent, context: Context) {
+    fun startScreenShare(resultCode: Int, data: Intent, context: Context) {
         val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE)
                 as android.media.projection.MediaProjectionManager
         val mediaProjection = projectionManager.getMediaProjection(resultCode, data)
@@ -358,7 +382,6 @@ class SessionViewModel(
             autoSubscribeVideo = true
         }
         rtcEngine?.updateChannelMediaOptions(options)
-        context.stopService(Intent(context, ScreenCaptureService::class.java))
         _uiState.value = _uiState.value.copy(
             isScreenSharing = false,
             isCameraOff = false,
@@ -371,8 +394,11 @@ class SessionViewModel(
     fun endSession(context: Context) {
         val bookingId = _uiState.value.booking?.id ?: return
         rtcEngine?.leaveChannel()
+        RtcEngine.destroy()
+        rtcEngine = null
         stopSessionService(context)
-        context.stopService(Intent(context, ScreenCaptureService::class.java))
+        context.getSharedPreferences("active_session", Context.MODE_PRIVATE)
+            .edit { clear() }
         viewModelScope.launch {
             sessionRepository.markSessionCompleted(bookingId)
             _uiState.value = _uiState.value.copy(isEnded = true)
@@ -381,10 +407,9 @@ class SessionViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        android.util.Log.d("SessionReturn", "SessionViewModel onCleared called — isSessionActive=${_uiState.value.isSessionActive}")
+        reconnectJob?.cancel()
         chatListener?.remove()
         handsListener?.remove()
-        rtcEngine?.leaveChannel()
-        RtcEngine.destroy()
-        rtcEngine = null
     }
 }
