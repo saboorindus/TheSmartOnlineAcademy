@@ -69,7 +69,6 @@ class SessionRepository {
                     totalPlatformFee = admin.totalPlatformFee + booking.platformFeeAmount
                 )
 
-
                 // 🔹 Update booking
                 transaction.update(
                     bookingRef,

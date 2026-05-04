@@ -139,7 +139,7 @@ class MainActivity : ComponentActivity() {
             return
         }
         activePipSession?.onReturnFromBackground()
-        Log.d("SessionReturn", "onResume called — activePipSession=${activePipSession != null}, isSessionActive=${activePipSession?.uiState?.value?.isSessionActive}")
+        Log.d("SessionReturn", "onResume — activePipSession=${activePipSession != null}")
         checkIfUserDisabled()
     }
 

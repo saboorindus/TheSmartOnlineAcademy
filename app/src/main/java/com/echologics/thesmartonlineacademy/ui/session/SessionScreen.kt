@@ -80,6 +80,15 @@ fun SessionScreen(
         MainActivity.activePipSession = sessionViewModel
         onDispose {
             MainActivity.activePipSession = null
+            // Unbind from service when leaving screen but don't stop it
+            sessionViewModel.unbindService(context)
+        }
+    }
+
+    LaunchedEffect(uiState.isSessionActive) {
+        if (uiState.isSessionActive) {
+            // Already active — rebind if disconnected
+            sessionViewModel.bindToExistingService(context)
         }
     }
 
