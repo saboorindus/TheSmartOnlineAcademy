@@ -43,7 +43,6 @@ class MainActivity : ComponentActivity() {
         screenShareCallback = null
     }
 
-
     fun requestScreenCapture(onResult: (Int, Intent) -> Unit) {
         screenShareCallback = onResult
         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
@@ -116,6 +115,7 @@ class MainActivity : ComponentActivity() {
         NotificationHelper.createChannel(this)
         requestIgnoreBatteryOptimization()
     }
+
     @SuppressLint("BatteryLife")
     private fun requestIgnoreBatteryOptimization() {
         val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -129,7 +129,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     private var isFirstResume = true
 
     override fun onResume() {
@@ -138,8 +137,9 @@ class MainActivity : ComponentActivity() {
             isFirstResume = false
             return
         }
+        // Refresh video surfaces after returning from background / PiP
         activePipSession?.onReturnFromBackground()
-        Log.d("SessionReturn", "onResume — activePipSession=${activePipSession != null}")
+        Log.d("MainActivity", "onResume — activePipSession=${activePipSession != null}")
         checkIfUserDisabled()
     }
 
@@ -159,7 +159,6 @@ class MainActivity : ComponentActivity() {
     private fun enterPipIfSessionActive() {
         val vm = activePipSession ?: return
         if (!vm.uiState.value.isSessionActive) return
-//        if (vm.uiState.value.isScreenSharing) return   // ← add this
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val params = android.app.PictureInPictureParams.Builder()
                 .setAspectRatio(android.util.Rational(16, 9))
@@ -170,7 +169,6 @@ class MainActivity : ComponentActivity() {
 
     private fun checkIfUserDisabled() {
         val firebaseUser = FirebaseAuth.getInstance().currentUser ?: return
-
         FirebaseFirestore.getInstance()
             .collection("users")
             .document(firebaseUser.uid)
@@ -179,7 +177,6 @@ class MainActivity : ComponentActivity() {
                 val user = doc.toObject(User::class.java) ?: return@addOnSuccessListener
                 if (user.disabled == true) {
                     FirebaseAuth.getInstance().signOut()
-                    // ✅ Just show the dialog and update dest — no activity restart
                     showDisabledDialogState?.value = true
                 }
             }
@@ -210,13 +207,12 @@ class MainActivity : ComponentActivity() {
                 else -> Pair(Screen.StudentHome.route, false)
             }
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "resolveStartDestination failed", e)
+            Log.e("MainActivity", "resolveStartDestination failed", e)
             Pair(Screen.RoleSelect.route, false)
         }
     }
 
     companion object {
-        // SessionScreen registers the active ViewModel here so MainActivity can talk to it
         var activePipSession: SessionViewModel? = null
     }
 }

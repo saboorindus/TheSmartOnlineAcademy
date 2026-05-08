@@ -27,12 +27,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.echologics.thesmartonlineacademy.MainActivity
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
-import com.echologics.thesmartonlineacademy.ui.session.whiteboard.WhiteboardViewModel
 
 @Composable
 fun SessionScreen(
     sessionViewModel: SessionViewModel,
-    whiteboardViewModel: WhiteboardViewModel,
     booking: Booking,
     role: SessionRole,
     onSessionEnded: () -> Unit

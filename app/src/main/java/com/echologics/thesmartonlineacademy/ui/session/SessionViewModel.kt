@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.repository.SessionRepository
+import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.services.SessionForegroundService
 import com.google.firebase.auth.FirebaseAuth
@@ -25,7 +26,6 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import androidx.core.content.edit
-import com.echologics.thesmartonlineacademy.data.model.Booking
 
 private const val SUPABASE_FUNCTION_URL =
     "https://vilzjwakvylaihhwitwi.supabase.co/functions/v1/generate-agora-token"
