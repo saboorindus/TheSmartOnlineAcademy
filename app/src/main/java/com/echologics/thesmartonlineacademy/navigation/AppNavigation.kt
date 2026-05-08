@@ -134,7 +134,7 @@ fun AppNavigation(
     val bookingRepository = remember { BookingRepository(context) }
     val reviewRepository = remember { ReviewRepository() }
     val teacherRepository = remember { TeacherRepository() }
-    val widrawalRepository = remember { WithdrawalRepository() }
+    val widrawalRepository = remember { WithdrawalRepository(context) }
     val sessionsRepository = remember { SessionRepository() }
     val factory = remember { AppViewModelFactory(
         authRepository,
@@ -420,7 +420,7 @@ fun AppNavigation(
             val whiteboardVm: WhiteboardViewModel = viewModel(factory = factory)
             SessionScreen(
                 sessionViewModel = sessionVm,
-//                whiteboardViewModel = whiteboardVm,
+                whiteboardViewModel = whiteboardVm,
                 booking = booking,
                 role = role,
                 onSessionEnded = {
