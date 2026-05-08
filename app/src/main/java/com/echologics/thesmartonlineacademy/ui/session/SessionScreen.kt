@@ -32,11 +32,14 @@ import com.echologics.thesmartonlineacademy.MainActivity
 import com.echologics.thesmartonlineacademy.data.model.Booking
 import com.echologics.thesmartonlineacademy.data.model.ChatMessage
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
+import com.echologics.thesmartonlineacademy.ui.session.whiteboard.WhiteboardCanvas
+import com.echologics.thesmartonlineacademy.ui.session.whiteboard.WhiteboardViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun SessionScreen(
     sessionViewModel: SessionViewModel,
+    whiteboardViewModel: WhiteboardViewModel,
     booking: Booking,
     role: SessionRole,
     onSessionEnded: () -> Unit
@@ -77,6 +80,15 @@ fun SessionScreen(
     LaunchedEffect(permissionsGranted) {
         if (permissionsGranted && !uiState.isSessionActive) {
             sessionViewModel.initSession(context, booking, role)
+        }
+    }
+
+    LaunchedEffect(uiState.isSessionActive) {
+        if (uiState.isSessionActive) {
+            whiteboardViewModel.initSync(
+                bookingId = booking.id,
+                uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+            )
         }
     }
 
@@ -246,6 +258,21 @@ fun SessionScreen(
                 }
             }
 
+            // Whiteboard
+            if (uiState.isWhiteboardVisible) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.7f)
+                        .padding(horizontal = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White)
+                ) {
+                    WhiteboardCanvas(viewModel = whiteboardViewModel, role = role)
+                }
+            }
+
             // Chat panel
             if (uiState.isChatVisible) {
                 ChatPanel(
@@ -297,6 +324,12 @@ fun SessionScreen(
                     label = "Flip",
                     active = false,
                     onClick = sessionViewModel::switchCamera
+                )
+                ControlButton(
+                    icon = Icons.Default.Draw,
+                    label = "Board",
+                    active = uiState.isWhiteboardVisible,
+                    onClick = sessionViewModel::toggleWhiteboard
                 )
                 ControlButton(
                     icon = Icons.AutoMirrored.Filled.Chat,

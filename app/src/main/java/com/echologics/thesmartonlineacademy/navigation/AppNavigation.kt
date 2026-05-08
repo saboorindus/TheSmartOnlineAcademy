@@ -420,7 +420,7 @@ fun AppNavigation(
             val whiteboardVm: WhiteboardViewModel = viewModel(factory = factory)
             SessionScreen(
                 sessionViewModel = sessionVm,
-//                whiteboardViewModel = whiteboardVm,
+                whiteboardViewModel = whiteboardVm,
                 booking = booking,
                 role = role,
                 onSessionEnded = {

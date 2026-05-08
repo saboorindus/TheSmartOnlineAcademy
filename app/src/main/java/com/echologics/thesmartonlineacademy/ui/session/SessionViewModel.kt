@@ -46,6 +46,8 @@ data class SessionUiState(
     val isChatVisible: Boolean = false,
     val chatMessages: List<ChatMessage> = emptyList(),
     val chatInput: String = "",
+    // whiteboard
+    val isWhiteboardVisible: Boolean = false,
     // raise hand
     val hasRaisedHand: Boolean = false,
     val raisedHands: List<String> = emptyList(),
@@ -237,11 +239,21 @@ class SessionViewModel(
     fun setupRemoteVideo(view: android.view.SurfaceView, remoteUid: Int) =
         sessionService?.setupRemoteVideo(view, remoteUid)
 
+    // ── Whiteboard ────────────────────────────────────────────────────────────
+
+    fun toggleWhiteboard() {
+        _uiState.value = _uiState.value.copy(
+            isWhiteboardVisible = !_uiState.value.isWhiteboardVisible,
+            isChatVisible = false
+        )
+    }
+
     // ── Chat ──────────────────────────────────────────────────────────────────
 
     fun toggleChat() {
         _uiState.value = _uiState.value.copy(
-            isChatVisible = !_uiState.value.isChatVisible
+            isChatVisible = !_uiState.value.isChatVisible,
+            isWhiteboardVisible = false
         )
     }
 
