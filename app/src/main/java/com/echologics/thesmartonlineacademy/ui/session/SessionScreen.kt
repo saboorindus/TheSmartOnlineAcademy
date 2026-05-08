@@ -6,10 +6,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,8 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -46,8 +51,11 @@ fun SessionScreen(
 ) {
     val uiState by sessionViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val density = LocalDensity.current
     var permissionsGranted by remember { mutableStateOf(false) }
     var showEndConfirm by remember { mutableStateOf(false) }
+    // Track controls bar height so panels know exactly how high to sit above it
+    var controlsBarHeightDp by remember { mutableStateOf(80.dp) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -163,7 +171,7 @@ fun SessionScreen(
             }
         }
 
-        // ── Everything below hidden in PiP ────────────────────────────────────
+        // ── Everything below hidden in PiP ─────────────────────────────────────
         if (!uiState.isInPipMode) {
 
             // Local video pip
@@ -258,22 +266,23 @@ fun SessionScreen(
                 }
             }
 
-            // Whiteboard
+            // ── Whiteboard — sits above controls bar ───────────────────────────
             if (uiState.isWhiteboardVisible) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.Center)
+                        .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .fillMaxHeight(0.7f)
+                        .padding(bottom = controlsBarHeightDp)
+                        .fillMaxHeight(0.72f)
                         .padding(horizontal = 8.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                         .background(Color.White)
                 ) {
                     WhiteboardCanvas(viewModel = whiteboardViewModel, role = role)
                 }
             }
 
-            // Chat panel
+            // ── Chat panel — sits above controls bar ───────────────────────────
             if (uiState.isChatVisible) {
                 ChatPanel(
                     messages = uiState.chatMessages,
@@ -284,21 +293,27 @@ fun SessionScreen(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .fillMaxHeight(0.5f)
-                        .padding(bottom = 80.dp, start = 8.dp, end = 8.dp)
+                        .padding(bottom = controlsBarHeightDp, start = 8.dp, end = 8.dp)
                         .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                         .background(Color(0xF2FFFFFF))
                 )
             }
 
-            // Controls bar
+            // ── Controls bar — horizontal scroll, always on top ────────────────
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .background(Color(0xCC000000))
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .onGloballyPositioned { coords ->
+                        controlsBarHeightDp = with(density) {
+                            coords.size.height.toDp() + 8.dp
+                        }
+                    },
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ControlButton(
@@ -348,6 +363,7 @@ fun SessionScreen(
                         onClick = sessionViewModel::raiseHand
                     )
                 }
+                // End call — always last
                 Box(
                     modifier = Modifier
                         .size(52.dp)
@@ -366,6 +382,7 @@ fun SessionScreen(
                     )
                 }
             }
+
         } // end isInPipMode check
     }
 }
@@ -459,7 +476,7 @@ private fun ControlButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clickable(interactionSource = null, indication = null) { onClick() }
-            .padding(4.dp)
+            .padding(horizontal = 4.dp, vertical = 4.dp)
     ) {
         Box(
             modifier = Modifier
