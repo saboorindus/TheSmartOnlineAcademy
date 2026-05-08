@@ -177,6 +177,17 @@ class SessionViewModel : ViewModel() {
             }
         }
 
+    // ── Video ─────────────────────────────────────────────────────────────────
+
+    fun setupLocalVideo(view: android.view.SurfaceView) =
+        sessionService?.setupLocalVideo(view)
+
+    fun setupRemoteVideo(view: android.view.SurfaceView, remoteUid: Int) =
+        sessionService?.setupRemoteVideo(view, remoteUid)
+
+    fun onReturnFromBackground() =
+        sessionService?.refreshVideoKey()
+
     // ── End session ───────────────────────────────────────────────────────────
 
     fun endSession(context: Context) {
