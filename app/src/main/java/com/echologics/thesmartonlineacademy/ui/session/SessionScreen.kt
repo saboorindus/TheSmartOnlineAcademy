@@ -2,15 +2,19 @@ package com.echologics.thesmartonlineacademy.ui.session
 
 import android.Manifest
 import android.view.SurfaceView
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,7 +30,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.echologics.thesmartonlineacademy.MainActivity
 import com.echologics.thesmartonlineacademy.data.model.Booking
+import com.echologics.thesmartonlineacademy.data.model.ChatMessage
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
+import kotlinx.coroutines.launch
 
 @Composable
 fun SessionScreen(
@@ -47,7 +53,6 @@ fun SessionScreen(
                 perms[Manifest.permission.RECORD_AUDIO] == true
     }
 
-    // Register this ViewModel as the active PiP session
     DisposableEffect(Unit) {
         MainActivity.activePipSession = sessionViewModel
         onDispose {
@@ -63,7 +68,6 @@ fun SessionScreen(
         val micOk = androidx.core.content.ContextCompat.checkSelfPermission(
             context, Manifest.permission.RECORD_AUDIO
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
         if (camOk && micOk) permissionsGranted = true
         else permissionLauncher.launch(
             arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
@@ -121,7 +125,7 @@ fun SessionScreen(
             .background(Color(0xFF1A1A1A))
     ) {
 
-        // ── Remote video — always visible including in PiP ─────────────────────
+        // ── Remote video — always visible including PiP ────────────────────────
         if (uiState.isRemoteVideoVisible && uiState.remoteUid != null) {
             key(uiState.remoteVideoKey) {
                 AndroidView(
@@ -147,7 +151,7 @@ fun SessionScreen(
             }
         }
 
-        // ── Everything below is hidden in PiP ─────────────────────────────────
+        // ── Everything below hidden in PiP ────────────────────────────────────
         if (!uiState.isInPipMode) {
 
             // Local video pip
@@ -211,6 +215,54 @@ fun SessionScreen(
                 }
             }
 
+            // Raised hand badge — teacher only
+            if (role == SessionRole.TEACHER && uiState.raisedHands.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 72.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFFE24B4A)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.PanTool,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = if (uiState.raisedHands.size == 1) "Student raised hand"
+                            else "${uiState.raisedHands.size} students raised hands",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            // Chat panel
+            if (uiState.isChatVisible) {
+                ChatPanel(
+                    messages = uiState.chatMessages,
+                    input = uiState.chatInput,
+                    onInputChange = sessionViewModel::onChatInputChange,
+                    onSend = sessionViewModel::sendChatMessage,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.5f)
+                        .padding(bottom = 80.dp, start = 8.dp, end = 8.dp)
+                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                        .background(Color(0xF2FFFFFF))
+                )
+            }
+
             // Controls bar
             Row(
                 modifier = Modifier
@@ -246,6 +298,23 @@ fun SessionScreen(
                     active = false,
                     onClick = sessionViewModel::switchCamera
                 )
+                ControlButton(
+                    icon = Icons.AutoMirrored.Filled.Chat,
+                    label = "Chat",
+                    active = uiState.isChatVisible,
+                    tint = if (uiState.chatMessages.isNotEmpty() && !uiState.isChatVisible)
+                        Color(0xFF1D9E75) else null,
+                    onClick = sessionViewModel::toggleChat
+                )
+                if (role == SessionRole.STUDENT) {
+                    ControlButton(
+                        icon = Icons.Default.PanTool,
+                        label = if (uiState.hasRaisedHand) "Lower" else "Raise",
+                        active = uiState.hasRaisedHand,
+                        tint = if (uiState.hasRaisedHand) Color(0xFFE24B4A) else null,
+                        onClick = sessionViewModel::raiseHand
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .size(52.dp)
@@ -264,16 +333,93 @@ fun SessionScreen(
                     )
                 }
             }
-
         } // end isInPipMode check
     }
 }
+
+// ── Chat panel ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ChatPanel(
+    messages: List<ChatMessage>,
+    input: String,
+    onInputChange: (String) -> Unit,
+    onSend: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            scope.launch { listState.animateScrollToItem(messages.size - 1) }
+        }
+    }
+
+    Column(modifier = modifier.padding(12.dp)) {
+        Text(
+            "Session chat",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(messages) { msg -> ChatBubble(msg) }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = input,
+                onValueChange = onInputChange,
+                placeholder = { Text("Type a message...", fontSize = 13.sp) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(20.dp)
+            )
+            IconButton(
+                onClick = onSend,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFF534AB7))
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send",
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatBubble(message: ChatMessage) {
+    Column {
+        Text(
+            message.senderName,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF534AB7)
+        )
+        Text(message.text, fontSize = 13.sp, lineHeight = 18.sp)
+    }
+}
+
+// ── Control button ────────────────────────────────────────────────────────────
 
 @Composable
 private fun ControlButton(
     icon: ImageVector,
     label: String,
     active: Boolean,
+    tint: Color? = null,
     onClick: () -> Unit
 ) {
     Column(
@@ -292,7 +438,7 @@ private fun ControlButton(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (active) Color.White else Color(0xFFAAAAAA),
+                tint = tint ?: if (active) Color.White else Color(0xFFAAAAAA),
                 modifier = Modifier.size(22.dp)
             )
         }

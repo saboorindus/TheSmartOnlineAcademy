@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echologics.thesmartonlineacademy.data.repository.SessionRepository
 import com.echologics.thesmartonlineacademy.data.model.Booking
+import com.echologics.thesmartonlineacademy.data.model.ChatMessage
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.services.SessionForegroundService
 import com.google.firebase.auth.FirebaseAuth
@@ -41,6 +42,13 @@ data class SessionUiState(
     val isSpeakerOn: Boolean = true,
     // pip
     val isInPipMode: Boolean = false,
+    // chat
+    val isChatVisible: Boolean = false,
+    val chatMessages: List<ChatMessage> = emptyList(),
+    val chatInput: String = "",
+    // raise hand
+    val hasRaisedHand: Boolean = false,
+    val raisedHands: List<String> = emptyList(),
     // mirrors from AgoraState
     val localUid: Int = 0,
     val remoteUid: Int? = null,
@@ -63,6 +71,8 @@ class SessionViewModel(
     private var serviceConnected = false
     private var agoraStateJob: Job? = null
     private var reconnectJob: Job? = null
+    private var chatListener: com.google.firebase.firestore.ListenerRegistration? = null
+    private var handsListener: com.google.firebase.firestore.ListenerRegistration? = null
 
     private val currentUid get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
@@ -140,6 +150,8 @@ class SessionViewModel(
                 return@launch
             }
             service.joinChannel(booking.agoraChannelName, uid, token)
+            listenToChat(booking.id)
+            listenToRaisedHands(booking.id)
         }
     }
 
@@ -225,6 +237,57 @@ class SessionViewModel(
     fun setupRemoteVideo(view: android.view.SurfaceView, remoteUid: Int) =
         sessionService?.setupRemoteVideo(view, remoteUid)
 
+    // ── Chat ──────────────────────────────────────────────────────────────────
+
+    fun toggleChat() {
+        _uiState.value = _uiState.value.copy(
+            isChatVisible = !_uiState.value.isChatVisible
+        )
+    }
+
+    fun onChatInputChange(text: String) {
+        _uiState.value = _uiState.value.copy(chatInput = text)
+    }
+
+    fun sendChatMessage() {
+        val state = _uiState.value
+        val text = state.chatInput.trim()
+        if (text.isBlank()) return
+        val bookingId = state.booking?.id ?: return
+        val message = ChatMessage(
+            senderId = currentUid,
+            senderName = if (state.role == SessionRole.TEACHER)
+                state.booking.teacherName else state.booking.studentName,
+            text = text
+        )
+        _uiState.value = state.copy(chatInput = "")
+        viewModelScope.launch { sessionRepository.sendChatMessage(bookingId, message) }
+    }
+
+    private fun listenToChat(bookingId: String) {
+        chatListener = sessionRepository.listenToChat(bookingId) { messages ->
+            _uiState.value = _uiState.value.copy(chatMessages = messages)
+        }
+    }
+
+    // ── Raise hand ────────────────────────────────────────────────────────────
+
+    fun raiseHand() {
+        val bookingId = _uiState.value.booking?.id ?: return
+        val raised = !_uiState.value.hasRaisedHand
+        _uiState.value = _uiState.value.copy(hasRaisedHand = raised)
+        viewModelScope.launch {
+            if (raised) sessionRepository.raiseHand(bookingId, currentUid)
+            else sessionRepository.lowerHand(bookingId, currentUid)
+        }
+    }
+
+    private fun listenToRaisedHands(bookingId: String) {
+        handsListener = sessionRepository.listenToRaisedHands(bookingId) { hands ->
+            _uiState.value = _uiState.value.copy(raisedHands = hands)
+        }
+    }
+
     // ── End session ───────────────────────────────────────────────────────────
 
     fun endSession(context: Context) {
@@ -250,6 +313,8 @@ class SessionViewModel(
         super.onCleared()
         reconnectJob?.cancel()
         agoraStateJob?.cancel()
+        chatListener?.remove()
+        handsListener?.remove()
         Log.d(TAG, "onCleared — service stays alive")
     }
 
