@@ -19,6 +19,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
@@ -57,7 +60,7 @@
 
         <service
             android:name=".services.SessionForegroundService"
-            android:foregroundServiceType="mediaPlayback|specialUse|mediaProjection"
+            android:foregroundServiceType="camera|microphone|mediaProjection"
             android:exported="false"/>
 
     </application>

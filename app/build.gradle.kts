@@ -117,7 +117,7 @@ dependencies {
     implementation(libs.androidx.splashscreen)
 
     implementation(libs.onesignal)
-
+    implementation(libs.androidx.compose.runtime)
 //    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(libs.full.sdk)
 

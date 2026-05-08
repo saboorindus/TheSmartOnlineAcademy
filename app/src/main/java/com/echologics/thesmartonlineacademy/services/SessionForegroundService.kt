@@ -14,13 +14,12 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.echologics.thesmartonlineacademy.MainActivity
 import com.echologics.thesmartonlineacademy.R
+import com.echologics.thesmartonlineacademy.data.model.AgoraState
 import io.agora.rtc2.ChannelMediaOptions
 import io.agora.rtc2.Constants
 import io.agora.rtc2.IRtcEngineEventHandler
 import io.agora.rtc2.RtcEngine
 import io.agora.rtc2.RtcEngineConfig
-import io.agora.rtc2.ScreenCaptureParameters
-import io.agora.rtc2.video.VideoCanvas
 import io.agora.rtc2.video.VideoEncoderConfiguration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,33 +27,31 @@ import kotlinx.coroutines.flow.asStateFlow
 
 private const val AGORA_APP_ID = "0bcd1a1d17b44aeeba473215676773fa"
 
-data class AgoraState(
-    val localUid: Int = 0,
-    val remoteUid: Int? = null,
-    val isSessionActive: Boolean = false,
-    val isRemoteVideoVisible: Boolean = false,
-    val connectionState: String = "Connecting...",
-    val remoteVideoKey: Int = 0,
-    val error: String? = null
-)
-
 class SessionForegroundService : Service() {
+
+    // ── Binder ────────────────────────────────────────────────────────────────
 
     inner class SessionBinder : Binder() {
         fun getService(): SessionForegroundService = this@SessionForegroundService
     }
 
     private val binder = SessionBinder()
+    override fun onBind(intent: Intent?): IBinder = binder
+
+    // ── Agora ─────────────────────────────────────────────────────────────────
+
     private var rtcEngine: RtcEngine? = null
 
     private val _agoraState = MutableStateFlow(AgoraState())
     val agoraState: StateFlow<AgoraState> = _agoraState.asStateFlow()
 
-    var onUserOfflineCallback: (() -> Unit)? = null
     var onUserJoinedCallback: (() -> Unit)? = null
+    var onUserOfflineCallback: (() -> Unit)? = null
 
     private val eventHandler = object : IRtcEngineEventHandler() {
+
         override fun onJoinChannelSuccess(channel: String, uid: Int, elapsed: Int) {
+            Log.d(TAG, "onJoinChannelSuccess uid=$uid")
             _agoraState.value = _agoraState.value.copy(
                 localUid = uid,
                 isSessionActive = true,
@@ -63,6 +60,7 @@ class SessionForegroundService : Service() {
         }
 
         override fun onUserJoined(uid: Int, elapsed: Int) {
+            Log.d(TAG, "onUserJoined uid=$uid")
             _agoraState.value = _agoraState.value.copy(
                 remoteUid = uid,
                 isRemoteVideoVisible = true
@@ -71,6 +69,7 @@ class SessionForegroundService : Service() {
         }
 
         override fun onUserOffline(uid: Int, reason: Int) {
+            Log.d(TAG, "onUserOffline uid=$uid reason=$reason")
             onUserOfflineCallback?.invoke()
         }
 
@@ -80,29 +79,22 @@ class SessionForegroundService : Service() {
                 Constants.CONNECTION_STATE_CONNECTED -> "Connected"
                 Constants.CONNECTION_STATE_RECONNECTING -> "Reconnecting..."
                 Constants.CONNECTION_STATE_FAILED -> "Connection failed"
-                else -> ""
+                else -> return
             }
-            if (label.isNotEmpty()) {
-                _agoraState.value = _agoraState.value.copy(connectionState = label)
-            }
+            _agoraState.value = _agoraState.value.copy(connectionState = label)
         }
 
         override fun onError(err: Int) {
+            Log.e(TAG, "Agora error $err")
             _agoraState.value = _agoraState.value.copy(error = "Agora error: $err")
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("SessionReturn", "SessionForegroundService started")
-        ensureChannel()
-        showNotification()
-        return START_STICKY
-    }
-
-    override fun onBind(intent: Intent?): IBinder = binder
-
     fun initAgora(context: Context) {
-        if (rtcEngine != null) return  // already initialized
+        if (rtcEngine != null) {
+            Log.d(TAG, "initAgora — already initialised, skipping")
+            return
+        }
         try {
             val config = RtcEngineConfig().apply {
                 mContext = context.applicationContext
@@ -121,7 +113,9 @@ class SessionForegroundService : Service() {
                 )
                 setDefaultAudioRoutetoSpeakerphone(true)
             }
+            Log.d(TAG, "initAgora — success")
         } catch (e: Exception) {
+            Log.e(TAG, "initAgora failed", e)
             _agoraState.value = _agoraState.value.copy(error = "Failed to init Agora: ${e.message}")
         }
     }
@@ -136,40 +130,7 @@ class SessionForegroundService : Service() {
             autoSubscribeVideo = true
         }
         rtcEngine?.joinChannel(token, channelName, uid, options)
-    }
-
-    fun leaveChannel() {
-        rtcEngine?.leaveChannel()
-        RtcEngine.destroy()
-        rtcEngine = null
-        _agoraState.value = AgoraState()
-    }
-
-    fun setupLocalVideo(view: android.view.SurfaceView) {
-        val canvas = VideoCanvas(view, VideoCanvas.RENDER_MODE_HIDDEN, 0)
-        rtcEngine?.setupLocalVideo(canvas)
-        rtcEngine?.startPreview()
-    }
-
-    fun setupRemoteVideo(view: android.view.SurfaceView, remoteUid: Int) {
-        val canvas = VideoCanvas(view, VideoCanvas.RENDER_MODE_HIDDEN, remoteUid)
-        rtcEngine?.setupRemoteVideo(canvas)
-    }
-
-    fun muteLocalAudio(muted: Boolean) = rtcEngine?.muteLocalAudioStream(muted)
-    fun muteLocalVideo(muted: Boolean) = rtcEngine?.muteLocalVideoStream(muted)
-    fun switchCamera() = rtcEngine?.switchCamera()
-    fun setSpeakerphone(on: Boolean) = rtcEngine?.setEnableSpeakerphone(on)
-    fun updateChannelOptions(options: ChannelMediaOptions) = rtcEngine?.updateChannelMediaOptions(options)
-    fun setExternalMediaProjection(projection: android.media.projection.MediaProjection) = rtcEngine?.setExternalMediaProjection(projection)
-    fun startScreenCapture(params: ScreenCaptureParameters) = rtcEngine?.startScreenCapture(params)
-    fun stopScreenCapture() = rtcEngine?.stopScreenCapture()
-
-    fun markRemoteVideoVisible(uid: Int) {
-        _agoraState.value = _agoraState.value.copy(
-            remoteUid = uid,
-            isRemoteVideoVisible = true
-        )
+        Log.d(TAG, "joinChannel called — channel=$channelName uid=$uid")
     }
 
     fun markRemoteOffline() {
@@ -180,14 +141,37 @@ class SessionForegroundService : Service() {
         )
     }
 
-    fun refreshVideoKey() {
-        _agoraState.value = _agoraState.value.copy(
-            remoteVideoKey = _agoraState.value.remoteVideoKey + 1,
-            isRemoteVideoVisible = _agoraState.value.remoteUid != null,
-            connectionState = if (_agoraState.value.isSessionActive) "Connected" else _agoraState.value.connectionState
-        )
+    fun leaveChannel() {
+        rtcEngine?.leaveChannel()
+        rtcEngine?.let { RtcEngine.destroy() }
+        rtcEngine = null
+        _agoraState.value = AgoraState()
+        Log.d(TAG, "leaveChannel — engine destroyed")
     }
 
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    override fun onCreate() {
+        super.onCreate()
+        Log.d(TAG, "onCreate")
+        ensureNotificationChannel()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand")
+        showNotification()
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        leaveChannel()
+        Log.d(TAG, "onDestroy")
+    }
+
+    // ── Notification ──────────────────────────────────────────────────────────
+
+    @android.annotation.SuppressLint("InlinedApi")
     private fun showNotification() {
         val returnIntent = Intent(this, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
@@ -206,31 +190,35 @@ class SessionForegroundService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
-        if (Build.VERSION.SDK_INT >= 34) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             startForeground(
-                NOTIFICATION_ID, notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
             )
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        } else {
             startForeground(NOTIFICATION_ID, notification)
         }
     }
 
-    private fun ensureChannel() {
+    private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
             if (manager.getNotificationChannel(CHANNEL_ID) == null) {
                 manager.createNotificationChannel(
-                    NotificationChannel(CHANNEL_ID, "Active Session", NotificationManager.IMPORTANCE_LOW)
-                        .apply { setShowBadge(false) }
+                    NotificationChannel(
+                        CHANNEL_ID,
+                        "Active Session",
+                        NotificationManager.IMPORTANCE_LOW
+                    ).apply { setShowBadge(false) }
                 )
             }
         }
     }
 
     companion object {
+        const val TAG = "SessionService"
         const val CHANNEL_ID = "session_active_channel"
         const val NOTIFICATION_ID = 102
     }
