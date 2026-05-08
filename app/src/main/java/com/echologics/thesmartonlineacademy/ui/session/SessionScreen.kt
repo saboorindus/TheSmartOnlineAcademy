@@ -272,119 +272,118 @@ fun SessionScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(bottom = controlsBarHeightDp)
                         .fillMaxHeight(0.72f)
-                        .padding(horizontal = 8.dp)
+                        .padding(bottom = controlsBarHeightDp, start = 8.dp, end = 8.dp)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                         .background(Color.White)
                 ) {
                     WhiteboardCanvas(viewModel = whiteboardViewModel, role = role)
                 }
             }
+        }
 
-            // ── Chat panel — sits above controls bar ───────────────────────────
-            if (uiState.isChatVisible) {
-                ChatPanel(
-                    messages = uiState.chatMessages,
-                    input = uiState.chatInput,
-                    onInputChange = sessionViewModel::onChatInputChange,
-                    onSend = sessionViewModel::sendChatMessage,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.5f)
-                        .padding(bottom = controlsBarHeightDp, start = 8.dp, end = 8.dp)
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                        .background(Color(0xF2FFFFFF))
-                )
-            }
-
-            // ── Controls bar — horizontal scroll, always on top ────────────────
-            Row(
+        // ── Chat panel — sits above controls bar ───────────────────────────
+        if (uiState.isChatVisible) {
+            ChatPanel(
+                messages = uiState.chatMessages,
+                input = uiState.chatInput,
+                onInputChange = sessionViewModel::onChatInputChange,
+                onSend = sessionViewModel::sendChatMessage,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .background(Color(0xCC000000))
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
-                    .onGloballyPositioned { coords ->
-                        controlsBarHeightDp = with(density) {
-                            coords.size.height.toDp() + 8.dp
-                        }
-                    },
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ControlButton(
-                    icon = if (uiState.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                    label = if (uiState.isMuted) "Unmute" else "Mute",
-                    active = !uiState.isMuted,
-                    onClick = sessionViewModel::toggleMute
-                )
-                ControlButton(
-                    icon = if (uiState.isCameraOff) Icons.Default.VideocamOff else Icons.Default.Videocam,
-                    label = if (uiState.isCameraOff) "Cam off" else "Cam on",
-                    active = !uiState.isCameraOff,
-                    onClick = sessionViewModel::toggleCamera
-                )
-                ControlButton(
-                    icon = if (uiState.isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                    label = if (uiState.isSpeakerOn) "Speaker" else "Earpiece",
-                    active = uiState.isSpeakerOn,
-                    onClick = sessionViewModel::toggleSpeaker
-                )
-                ControlButton(
-                    icon = Icons.Default.Cameraswitch,
-                    label = "Flip",
-                    active = false,
-                    onClick = sessionViewModel::switchCamera
-                )
-                ControlButton(
-                    icon = Icons.Default.Draw,
-                    label = "Board",
-                    active = uiState.isWhiteboardVisible,
-                    onClick = sessionViewModel::toggleWhiteboard
-                )
-                ControlButton(
-                    icon = Icons.AutoMirrored.Filled.Chat,
-                    label = "Chat",
-                    active = uiState.isChatVisible,
-                    tint = if (uiState.chatMessages.isNotEmpty() && !uiState.isChatVisible)
-                        Color(0xFF1D9E75) else null,
-                    onClick = sessionViewModel::toggleChat
-                )
-                if (role == SessionRole.STUDENT) {
-                    ControlButton(
-                        icon = Icons.Default.PanTool,
-                        label = if (uiState.hasRaisedHand) "Lower" else "Raise",
-                        active = uiState.hasRaisedHand,
-                        tint = if (uiState.hasRaisedHand) Color(0xFFE24B4A) else null,
-                        onClick = sessionViewModel::raiseHand
-                    )
-                }
-                // End call — always last
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE24B4A))
-                        .clickable(interactionSource = null, indication = null) {
-                            showEndConfirm = true
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.CallEnd,
-                        contentDescription = "End session",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+                    .fillMaxHeight(0.5f)
+                    .padding(bottom = controlsBarHeightDp, start = 8.dp, end = 8.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(Color(0xF2FFFFFF))
+            )
+        }
 
-        } // end isInPipMode check
-    }
+        // ── Controls bar — horizontal scroll, always on top ────────────────
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .background(Color(0xCC000000))
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .onGloballyPositioned { coords ->
+                    controlsBarHeightDp = with(density) {
+                        coords.size.height.toDp() + 8.dp
+                    }
+                },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ControlButton(
+                icon = if (uiState.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                label = if (uiState.isMuted) "Unmute" else "Mute",
+                active = !uiState.isMuted,
+                onClick = sessionViewModel::toggleMute
+            )
+            ControlButton(
+                icon = if (uiState.isCameraOff) Icons.Default.VideocamOff else Icons.Default.Videocam,
+                label = if (uiState.isCameraOff) "Cam off" else "Cam on",
+                active = !uiState.isCameraOff,
+                onClick = sessionViewModel::toggleCamera
+            )
+            ControlButton(
+                icon = if (uiState.isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                label = if (uiState.isSpeakerOn) "Speaker" else "Earpiece",
+                active = uiState.isSpeakerOn,
+                onClick = sessionViewModel::toggleSpeaker
+            )
+            ControlButton(
+                icon = Icons.Default.Cameraswitch,
+                label = "Flip",
+                active = false,
+                onClick = sessionViewModel::switchCamera
+            )
+            ControlButton(
+                icon = Icons.Default.Draw,
+                label = "Board",
+                active = uiState.isWhiteboardVisible,
+                onClick = sessionViewModel::toggleWhiteboard
+            )
+            ControlButton(
+                icon = Icons.AutoMirrored.Filled.Chat,
+                label = "Chat",
+                active = uiState.isChatVisible,
+                tint = if (uiState.chatMessages.isNotEmpty() && !uiState.isChatVisible)
+                    Color(0xFF1D9E75) else null,
+                onClick = sessionViewModel::toggleChat
+            )
+            if (role == SessionRole.STUDENT) {
+                ControlButton(
+                    icon = Icons.Default.PanTool,
+                    label = if (uiState.hasRaisedHand) "Lower" else "Raise",
+                    active = uiState.hasRaisedHand,
+                    tint = if (uiState.hasRaisedHand) Color(0xFFE24B4A) else null,
+                    onClick = sessionViewModel::raiseHand
+                )
+            }
+            // End call — always last
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE24B4A))
+                    .clickable(interactionSource = null, indication = null) {
+                        showEndConfirm = true
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.CallEnd,
+                    contentDescription = "End session",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+    } // end isInPipMode check
 }
 
 // ── Chat panel ────────────────────────────────────────────────────────────────

@@ -71,6 +71,20 @@ fun WhiteboardCanvas(
                 onRedo = viewModel::redo,
                 onClearRequest = { showClearConfirm = true }
             )
+        } else {
+            // Student: small read-only label so they know they can see but not draw
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    "Whiteboard — view only",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         // ── Drawing canvas ────────────────────────────────────────────────────
