@@ -9,7 +9,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.echologics.thesmartonlineacademy.data.model.Booking
+import com.echologics.thesmartonlineacademy.data.repository.SessionRepository
 import com.echologics.thesmartonlineacademy.data.model.SessionRole
 import com.echologics.thesmartonlineacademy.services.SessionForegroundService
 import com.google.firebase.auth.FirebaseAuth
@@ -25,6 +25,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import androidx.core.content.edit
+import com.echologics.thesmartonlineacademy.data.model.Booking
 
 private const val SUPABASE_FUNCTION_URL =
     "https://vilzjwakvylaihhwitwi.supabase.co/functions/v1/generate-agora-token"
@@ -34,6 +35,12 @@ private const val SUPABASE_ANON_KEY =
 data class SessionUiState(
     val booking: Booking? = null,
     val role: SessionRole = SessionRole.STUDENT,
+    // controls
+    val isMuted: Boolean = false,
+    val isCameraOff: Boolean = false,
+    val isSpeakerOn: Boolean = true,
+    // pip
+    val isInPipMode: Boolean = false,
     // mirrors from AgoraState
     val localUid: Int = 0,
     val remoteUid: Int? = null,
@@ -45,7 +52,9 @@ data class SessionUiState(
     val isEnded: Boolean = false
 )
 
-class SessionViewModel : ViewModel() {
+class SessionViewModel(
+    private val sessionRepository: SessionRepository = SessionRepository()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SessionUiState())
     val uiState: StateFlow<SessionUiState> = _uiState.asStateFlow()
@@ -177,6 +186,37 @@ class SessionViewModel : ViewModel() {
             }
         }
 
+    // ── Controls ──────────────────────────────────────────────────────────────
+
+    fun toggleMute() {
+        val muted = !_uiState.value.isMuted
+        sessionService?.muteLocalAudio(muted)
+        _uiState.value = _uiState.value.copy(isMuted = muted)
+    }
+
+    fun toggleCamera() {
+        val off = !_uiState.value.isCameraOff
+        sessionService?.muteLocalVideo(off)
+        _uiState.value = _uiState.value.copy(isCameraOff = off)
+    }
+
+    fun toggleSpeaker() {
+        val on = !_uiState.value.isSpeakerOn
+        sessionService?.setSpeakerphone(on)
+        _uiState.value = _uiState.value.copy(isSpeakerOn = on)
+    }
+
+    fun switchCamera() = sessionService?.switchCamera()
+
+    // ── PiP ───────────────────────────────────────────────────────────────────
+
+    fun onPipModeChanged(inPip: Boolean) {
+        _uiState.value = _uiState.value.copy(isInPipMode = inPip)
+    }
+
+    fun onReturnFromBackground() =
+        sessionService?.refreshVideoKey()
+
     // ── Video ─────────────────────────────────────────────────────────────────
 
     fun setupLocalVideo(view: android.view.SurfaceView) =
@@ -185,17 +225,18 @@ class SessionViewModel : ViewModel() {
     fun setupRemoteVideo(view: android.view.SurfaceView, remoteUid: Int) =
         sessionService?.setupRemoteVideo(view, remoteUid)
 
-    fun onReturnFromBackground() =
-        sessionService?.refreshVideoKey()
-
     // ── End session ───────────────────────────────────────────────────────────
 
     fun endSession(context: Context) {
+        val bookingId = _uiState.value.booking?.id ?: return
         sessionService?.leaveChannel()
         unbindService(context)
         context.stopService(Intent(context, SessionForegroundService::class.java))
         context.getSharedPreferences("active_session", Context.MODE_PRIVATE).edit { clear() }
-        _uiState.value = _uiState.value.copy(isEnded = true)
+        viewModelScope.launch {
+            sessionRepository.markSessionCompleted(bookingId)
+            _uiState.value = _uiState.value.copy(isEnded = true)
+        }
     }
 
     fun stopSessionService(context: Context) {

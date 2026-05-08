@@ -159,7 +159,7 @@ class MainActivity : ComponentActivity() {
     private fun enterPipIfSessionActive() {
         val vm = activePipSession ?: return
         if (!vm.uiState.value.isSessionActive) return
-        if (vm.uiState.value.isScreenSharing) return   // ← add this
+//        if (vm.uiState.value.isScreenSharing) return   // ← add this
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val params = android.app.PictureInPictureParams.Builder()
                 .setAspectRatio(android.util.Rational(16, 9))

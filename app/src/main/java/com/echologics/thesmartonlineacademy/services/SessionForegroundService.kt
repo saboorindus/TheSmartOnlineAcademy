@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.echologics.thesmartonlineacademy.MainActivity
 import com.echologics.thesmartonlineacademy.R
+import com.echologics.thesmartonlineacademy.data.model.AgoraState
 import io.agora.rtc2.ChannelMediaOptions
 import io.agora.rtc2.Constants
 import io.agora.rtc2.IRtcEngineEventHandler
@@ -23,7 +24,6 @@ import io.agora.rtc2.video.VideoEncoderConfiguration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.echologics.thesmartonlineacademy.data.model.AgoraState
 
 private const val AGORA_APP_ID = "0bcd1a1d17b44aeeba473215676773fa"
 
@@ -132,6 +132,11 @@ class SessionForegroundService : Service() {
         rtcEngine?.joinChannel(token, channelName, uid, options)
         Log.d(TAG, "joinChannel called — channel=$channelName uid=$uid")
     }
+
+    fun muteLocalAudio(muted: Boolean) = rtcEngine?.muteLocalAudioStream(muted)
+    fun muteLocalVideo(muted: Boolean) = rtcEngine?.muteLocalVideoStream(muted)
+    fun switchCamera() = rtcEngine?.switchCamera()
+    fun setSpeakerphone(on: Boolean) = rtcEngine?.setEnableSpeakerphone(on)
 
     fun setupLocalVideo(view: android.view.SurfaceView) {
         val canvas = io.agora.rtc2.video.VideoCanvas(
