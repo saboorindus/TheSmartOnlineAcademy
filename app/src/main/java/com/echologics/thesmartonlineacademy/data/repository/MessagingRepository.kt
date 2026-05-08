@@ -9,6 +9,7 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 import android.content.Context
+import com.echologics.thesmartonlineacademy.R
 import com.echologics.thesmartonlineacademy.utils.OneSignalHelper
 
 class MessagingRepository(private val context: Context) {
@@ -19,11 +20,11 @@ class MessagingRepository(private val context: Context) {
     private val authRepository = AuthRepository()
 
     private val oneSignalAppId: String by lazy {
-        context.getString(context.resources.getIdentifier("onesignal_app_id", "string", context.packageName))
+        context.getString(R.string.onesignal_app_id)
     }
 
     private val oneSignalRestKey: String by lazy {
-        context.getString(context.resources.getIdentifier("onesignal_rest_api_key", "string", context.packageName))
+        context.getString(R.string.onesignal_rest_api_key)
     }
 
     // ── Send a message ────────────────────────────────────────────────────────
